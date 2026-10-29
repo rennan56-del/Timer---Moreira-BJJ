@@ -1,0 +1,16 @@
+node_modules/
+dist/
+artifacts/
+*.log
+.env*
+!.env.example
+.DS_Store
+# Uploads privados ficam fora do Git; fotos públicas autorizadas ficam em public/images/athletes/.
+photos/
+private/
+
+__pycache__/
+*.pyc
+
+# Metadados privados da hospedagem de teste
+.openai/

@@ -1,0 +1,75 @@
+# Validação — Timer Moreira BJJ 1.3
+
+Ambiente de desenvolvimento: Node.js 24.19.0, npm 11.9.0 e Chromium Linux disponível no Codex Cloud. Fontes oficiais e roteiro de Android/Roku em [ANDROID-ROKU.md](ANDROID-ROKU.md).
+
+## Resultado desta entrega
+
+**79 testes nativos aprovados, zero falhas. 40 cenários de navegador aprovados, zero falhas.** Build final e artefatos da versão 1.3.0 verificados no Chromium Linux. A suíte usa relógio controlado para sessões longas e relógio real para o padrão sonoro de luta/descanso.
+
+
+Os resultados exatos desta revisão estão em [VALIDATION.json](VALIDATION.json). Os testes nativos incluem o motor anterior, áudio reforçado, limite agregado de ganho, catálogo de cinco fotos e marca, recuperação e a corrida de liberação de Web Locks encontrada no navegador. A interface foi verificada nas dimensões 320×740, 390×844, 844×390 e 1920×1080.
+
+**Não foram testados Android ou Roku físicos, música de outro aplicativo no Android, Bluetooth ou alto-falantes reais da academia.** A construção de osciladores e seus envelopes foi testada, mas não certifica volume percebido ou foco de áudio em hardware.
+
+Falhas encontradas durante a revisão foram corrigidas antes da publicação: largura do relógio no retrato e tentativa de readquirir um Web Lock da própria aba antes de o navegador concluir sua liberação. A suíte também sincroniza explicitamente o início com a reserva assíncrona, sem avançar o relógio artificial antes de o motor iniciar.
+
+## O que cada teste comprova
+
+`npm test` recompila o aplicativo sem dependências e executa testes nativos do Node. O build transforma a sintaxe TypeScript; não equivale a uma checagem `tsc --noEmit`. O aviso de transformador experimental do Node 24 é esperado.
+
+O motor existente foi mantido. A suíte cobre início, pausa, retomada, preparação, encerramento, descanso zero, limites, callbacks atrasados e relógio congelado durante sono. Os novos casos validam **dez rounds de cinco minutos com nove descansos de três minutos**, captura/recuperação, migração das configurações, exclusividade entre abas e sequência sonora por limiares reais.
+
+Os testes sonoros usam tanto simulações da Web Audio quanto instrumentação de osciladores no Chromium. Verificam três tons curtos e um longo, deduplicação, recuperação sem repetir sons antigos, silêncio, volume, prioridade e modo música. Instanciar osciladores corretamente não comprova audibilidade física nem ausência de interrupção de outro aplicativo no Android.
+
+`python3 tests/browser-minimal.py` abre um servidor temporário local, navega no Chromium e produz capturas e relatório JSON em `artifacts/`, ignorado pelo Git. Usa relógio controlado para percorrer dez rounds e um relógio real em um treino curto para verificar oito sinais distintos: 3 curtos + 1 longo na luta e no descanso. Emulação touch não é um aparelho Android.
+
+## Cobertura da atualização
+
+| Requisito | Verificação automatizada | Verificação física pendente |
+| --- | --- | --- |
+| Tela de escolha a cada nova abertura | Gate antes do timer, escolha após reload e retomada explícita | Tela inicial na PWA instalada Android |
+| Moreira sem humor | Fotos, frases e seletor ocultos; movimento desativado | Legibilidade à distância |
+| BJJ com bibliotecas | Upload/visualização/ativação/exclusão; fotos nas janelas iniciais/finais e no encerramento; nenhuma frase | Fotos reais autorizadas da academia |
+| Dez rounds e nove descansos | Motor puro e interface com relógio controlado | Aula completa com música e espelhamento |
+| Último round encerra | Zero parado e TREINO FINALIZADO, sem novo descanso | — |
+| Bipes 3–2–1–zero | Chaves únicas e durações de osciladores no Chromium | Volume percebido e atraso da transmissão |
+| Pausa/retomada | Tempo congelado e nenhum sinal repetido | Interrupções do Android real |
+| Reativar áudio | Mesmo round/tempo e contexto recuperado sem bip antigo | Bluetooth e troca de rota de áudio |
+| Orientação | Retrato/paisagem sem trocar modo ou reiniciar treino | Espelhamento na Roku da academia |
+| Persistência | Configurações, fotos no IndexedDB e sessão pausada após reload | Descarte pelo SO e pressão de armazenamento |
+| Som habilitado/silêncio | Osciladores com áudio, ausência deles em silêncio | Modo silencioso e volume de mídia do Android |
+| Compatibilidade com música | Configuração persistida, tons breves e efeitos extras desligados | Player de música concorrente no aparelho real |
+| TV horizontal | 1920×1080 e 844×390; foto e relógio em áreas separadas | Roku física e rede da academia |
+| Sem regressões | Offline real via Service Worker, importação/exportação e fotos | Instalação no Android/iPhone |
+| Instância única | Web Locks; fallback conservador, fencing e recuperação explícita | Navegadores não Chromium e comportamento do SO |
+| Retorno após suspensão | Relógio, visibilidade e ordem simulada de bfcache | Suspensão real de processo pelo Android |
+
+## Execução
+
+```bash
+npm test
+npm run test:browser
+```
+
+O segundo comando precisa de Python, Playwright e Chromium previamente instalados. Não baixa navegadores nem dependências. Se a sandbox bloquear sockets ou o Chromium, a execução exige a permissão suportada para teste local; não é necessário alterar ou contornar o proxy.
+
+Os resultados atuais e contagens exatas são registrados em [VALIDATION.json](VALIDATION.json). Nenhum teste interrompido ou não executado deve ser contado como aprovado. Nenhum aparelho Android ou Roku físico foi testado neste ambiente.
+
+## Roteiro antes da primeira aula
+
+1. Abra a versão HTTPS no Android da academia e instale quando oferecido. Confirme o cache offline.
+2. Toque em cada modo numa nova abertura. Alterne temporariamente de aplicativo: a seleção não deve reaparecer nem apagar o treino.
+3. Ligue a música no player utilizado na academia. Selecione Academia ou Normal e teste os sinais com a música tocando. Observe se a música continua, diminui ou pausa.
+4. Espelhe na Roku pelo recurso compatível do fabricante. Gire para paisagem, ative Modo TV e confira números, saída do som e atraso.
+5. Execute 10 rounds curtos: confirme 3 bipes curtos e um longo no fim de cada fase, exatamente 9 descansos e parada no décimo round.
+6. Durante o treino, teste pausa/retomada, troca de orientação e **REATIVAR ÁUDIO**. O round não pode zerar.
+7. Bloqueie/troque de aplicativo por 20 segundos e volte. Confira fase e tempo recalculados; não espere sons que o SO impediu.
+8. Pause, recarregue, escolha modo e recupere: o tempo deve ser mantido. Em execução, a recuperação deve descontar o período fora da página.
+9. Abra uma segunda aba e confirme o bloqueio de outro treino. Feche corretamente todas as instâncias antes de liberar uma reserva antiga de fallback.
+10. Confira biblioteca e treino com rede desligada. Guarde fotos originais e exporte configurações antes de limpar dados.
+
+Se o Android pausar a música mesmo no Modo Música, use o timer silencioso ou um segundo dispositivo já disponível para a reprodução musical. Isso é uma alternativa gratuita quando o equipamento já existe; não é uma garantia de roteamento pelo app.
+
+## Revisão 1.3
+
+O som Academia usa bipes agudos de 2400 Hz/230 ms e encerramento de 1080 Hz/1050 ms, com limite agregado de ganho. Foram adicionados testes de migração respeitando silêncio, janelas de fotos sem frases, logo oficial no topo e ao fundo, atualização manual bloqueada durante treino e preservação do estado. A análise dos dois vídeos fornecidos está em [AUDIO-REFERENCE.md](AUDIO-REFERENCE.md). O segundo vídeo tem faixa de áudio silenciosa.
