@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.3.2';
+export const APP_VERSION = '1.4.0';
 interface UpdateOptions {
   isTrainingActive(): boolean;
   notify(message: string): void;

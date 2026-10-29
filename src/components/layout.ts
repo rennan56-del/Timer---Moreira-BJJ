@@ -1,3 +1,4 @@
+import { PROTOCOLS } from '../core/protocols.js';
 import { icon } from './icons.js';
 const brand = (large = false) => `<div class="brand ${large ? 'brand-large' : 'brand-header'}"><img class="academy-logo" data-academy-logo alt="Logo oficial Moreira BJJ Academy" hidden/><span class="brand-name">MOREIRA <b>BJJ</b><small>ACADEMY · TIMER</small></span></div>`;
 export function layout(): string {
@@ -33,7 +34,7 @@ export function layout(): string {
     <main>
       <section id="restore-banner" class="restore-banner" hidden aria-label="Recuperar treino"><div><strong>Continuar seu último treino?</strong><p id="restore-description"></p></div><div class="restore-actions"><button id="restore-session" class="button primary">Recuperar</button><button id="discard-session" class="button secondary">Descartar</button></div></section>
       <section id="timer-panel" class="timer-panel" aria-label="Cronômetro de treino" data-phase="fight" tabindex="-1">
-        <img class="academy-watermark" data-academy-logo data-academy-watermark alt="" aria-hidden="true" hidden/><div class="panel-top"><span class="round-badge">ROUND <strong id="round-number">01 <span>/ 05</span></strong></span><span id="phase-label" class="phase-label">PRONTO</span></div>
+        <img class="academy-watermark" data-academy-logo data-academy-watermark alt="" aria-hidden="true" hidden/><div class="panel-top"><div class="protocol-control"><label for="protocol-select" class="sr-only">Treino personalizado</label><select id="protocol-select"><option value="" disabled>Treino personalizado</option>${Object.entries(PROTOCOLS).map(([id,p]) => `<option value="${id}">${p.name}</option>`).join('')}<option value="manual">Sair do treino personalizado</option></select><span id="protocol-stage" hidden></span></div><span class="round-badge">ROUND <strong id="round-number">01 <span>/ 05</span></strong></span><span id="phase-label" class="phase-label">PRONTO</span></div>
         <div class="timer-content">
           <div class="clock-block"><span id="clock-caption" class="clock-caption sr-only">TEMPO DE LUTA</span><div id="clock" class="clock" role="timer" aria-label="Tempo restante" aria-live="off">05:00</div><span id="clock-note" class="clock-note sr-only"></span></div>
           <aside id="resenha-card" class="resenha-card" hidden aria-label="Fotos no início e no fim da contagem"><div id="photo-wrap" class="photo-wrap" hidden><img id="rest-photo" alt="Foto da academia"/></div></aside>

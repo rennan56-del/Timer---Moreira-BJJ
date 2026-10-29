@@ -351,3 +351,9 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
 
 /* Keep the native touch target mounted while the virtualized numbers change. */
 .wheel-row { pointer-events:none; }
+/* Native preset menu stays compact and shares the timer in both modes. */
+.protocol-control { position:relative; z-index:2; text-align:center; max-width:100%; }
+.protocol-control select { width:auto; max-width:min(330px,90vw); min-height:40px; padding:7px 28px 7px 12px; font-size:12px; font-weight:700; border:1px solid #0004; border-radius:8px; color:#050505; background:#ffffff30; }
+.protocol-control select option { background:#151515; color:#fff; }
+#protocol-stage { display:block; font-size:11px; font-weight:700; margin-top:4px; }
+@media(orientation:landscape) and (max-height:650px) { .protocol-control select { max-width:240px; font-size:10px; } .panel-top { gap:10px; } #protocol-stage { font-size:10px; } }

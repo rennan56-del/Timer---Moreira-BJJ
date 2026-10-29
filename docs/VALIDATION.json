@@ -1,15 +1,15 @@
 {
-  "version": "1.3.2",
+  "version": "1.4.0",
   "native": {
     "command": "npm test",
-    "passed": 79,
+    "passed": 92,
     "failed": 0
   },
   "browser": {
     "command": "python3 tests/browser-minimal.py",
     "passed": 40,
     "failed": 0,
-    "cache": "const CACHE = 'moreira-bjj-fd15605d98b8d4';",
+    "cache": "const CACHE = 'moreira-bjj-9db8124e8e6925';",
     "scenarios": [
       {
         "test": "Nova abertura exige escolha de modo sem iniciar cronômetro ou tocar sons",
@@ -208,14 +208,13 @@
     }
   },
   "release": {
-    "version": "1.3.2",
-    "status": "local only; not published",
-    "native_passed": 79,
+    "version": "1.4.0",
+    "status": "validated; GitHub upload requested separately",
+    "native_passed": 92,
     "browser_regression_passed": 40,
     "focused_editor_passed": 12,
-    "cpu_throttle": 4,
-    "github_pushed": false,
-    "hosted": false
+    "protocol_scenarios_passed": 12,
+    "physical_android": false
   },
   "focused_editor": {
     "passed": 12,
@@ -236,5 +235,23 @@
     "idle_mutations_per_second": 0,
     "physical_android": false,
     "cpu_throttle": 4.0
+  },
+  "protocols": {
+    "passed": 12,
+    "scenarios": [
+      "moreira: Rolas Decrescentes completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "moreira: Drills Padrões 1/1 completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "moreira: Drills em Sequência 4/0:30 completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "moreira: confirmação/cancelamento antes de trocar ou sair preserva sessão e modo",
+      "moreira: recuperação de protocolo pausado mantém round/tempo e não sobrescreve configurações manuais",
+      "moreira: últimas alterações manuais ficam separadas do protocolo",
+      "bjj: Rolas Decrescentes completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "bjj: Drills Padrões 1/1 completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "bjj: Drills em Sequência 4/0:30 completo, pausa, preparação, duração real, sem descanso final e retorno manual",
+      "bjj: confirmação/cancelamento antes de trocar ou sair preserva sessão e modo",
+      "bjj: recuperação de protocolo pausado mantém round/tempo e não sobrescreve configurações manuais",
+      "bjj: últimas alterações manuais ficam separadas do protocolo"
+    ],
+    "physical_android": false
   }
 }

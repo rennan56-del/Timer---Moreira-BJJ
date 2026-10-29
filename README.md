@@ -1,4 +1,4 @@
-# Moreira BJJ Timer — 1.3.2
+# Moreira BJJ Timer — 1.4.0
 
 Cronômetro de academia com números gigantes, preparação amarela, luta verde-limão e descanso vermelho. O modo Moreira é direto e profissional; o modo BJJ mostra as fotos nos primeiros e últimos três segundos de cada fase e na finalização, sem frases humorísticas. O relógio nunca é coberto pelas imagens.
 
@@ -116,3 +116,18 @@ O loop continua conferindo o motor e os sinais a cada 50 ms durante o treino, ma
 Fluxo baseado na gravação de tela enviada: lista de tempos → editor exclusivo com dois seletores e cinco posições visíveis → CONCLUÍDO → configurações → SALVAR → cronômetro. Voltar ou Escape no editor descartam apenas o valor ainda não confirmado; fechar as configurações sem salvar descarta o rascunho. Testar Som não persiste os tempos em rascunho. Erros de validação ou armazenamento mantêm a tela aberta para correção e nova tentativa.
 
 A superfície tocada é permanente: os números virtualizados não recebem eventos diretamente. Isso evita perder touchend quando uma linha desaparece durante a rolagem. O encaixe aguarda o término do toque/inércia, e CONCLUÍDO lê a posição imediatamente. Apenas duas colunas (até 22 linhas) são montadas no editor. A versão online anterior não foi alterada nesta revisão, conforme solicitado.
+
+## Treinos predefinidos — 1.4.0
+
+O seletor **Treino personalizado**, acima do relógio em ambos os modos, carrega um protocolo sem iniciar automaticamente. Toque em **Iniciar** para a preparação de três segundos.
+
+- **Rolas Decrescentes:** 10 min, 2 min de descanso, 8 min, 2 min de descanso, 6 min e fim.
+- **Drills Padrões 1/1:** oito rodadas de 1 min; sete trocas de 10 s.
+- **Drills em Sequência 4/0:30:** quatro rodadas de 1 min por aluno, com três descansos de 30 s em cada bloco; uma troca de aluno de 30 s entre os blocos. São oito rodadas e sete intervalos ao todo.
+- **Sair do treino personalizado:** desativa o protocolo e restaura as últimas durações/quantidade de rounds manuais.
+
+Os protocolos não sobrescrevem as configurações manuais. Mesmo ao editar tempos manuais enquanto um protocolo está selecionado, esses valores só passam a reger o relógio ao sair do protocolo. Trocar ou sair durante treino correndo/pausado pede confirmação; cancelar mantém a sessão. O modo Moreira/BJJ é preservado. A escolha fica guardada localmente quando o navegador permite, e a captura do treino inclui o protocolo para recuperação correta após suspensão/reabertura.
+
+A implementação foi salva localmente e o envio ao GitHub foi solicitado pelo proprietário; consulte o resultado informado na entrega. Não houve solicitação de atualização da hospedagem para esta revisão.
+
+Teste específico: `python3 tests/browser-protocols.py`. O script usa relógio controlado para percorrer todas as etapas nos dois modos, sem aguardar os minutos reais; a lógica sonora é testada separadamente com limiares do relógio. Android/Roku físicos continuam exigindo validação na academia.

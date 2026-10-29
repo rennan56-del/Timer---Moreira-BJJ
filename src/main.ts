@@ -1,3 +1,4 @@
+import { PROTOCOLS, isProtocol, protocolStage } from './core/protocols.js';
 import { photoMoment } from './core/photo-windows.js';
 import { upgradeAudio } from './storage/audio-upgrade.js';
 import { AppUpdates, APP_VERSION } from './media/app-updates.js';
@@ -33,6 +34,8 @@ settings.appearance = { fight:'#a8ff1a', rest:'#ff343b', preparation:'#f5ff18', 
 settings.humor.animations = true; settings.audio.musicCompatibility = true;
 const clock = new TrainingClock();
 const engine = new TimerEngine(settings.training, clock.now);
+const PROTOCOL_KEY = 'moreira-bjj:protocol:v1';
+try { const id = storage.getItem(PROTOCOL_KEY); if (isProtocol(id)) engine.configureProtocol(id); } catch { /* Selection is optional; manual settings remain usable. */ }
 const audio = new AudioSystem();
 const signals = new SignalTracker();
 const workoutLock = new WorkoutLock();
@@ -103,7 +106,7 @@ function applySettings(value: Settings): void {
   try { saveSettings(storage, next); }
   catch { throw new Error('Não foi possível salvar. Verifique espaço e permissões de armazenamento do navegador.'); }
   settings = next;
-  if (changedTraining) engine.configure(settings.training);
+  if (changedTraining && !engine.protocolId) engine.configure(settings.training);
   playlist.reset(); currentPhoto = '';
   if (!settings.audio.enabled) audio.stop();
   applyAppearance(); render(); persistWorkout(true);
@@ -189,15 +192,40 @@ function processSignals(events: Transition[] = [], silent = false): void {
     workoutLock.release();
   }
 }
+let protocolChanging = false;
+$('#protocol-select').addEventListener('change', async () => {
+  const selector = $<HTMLSelectElement>('#protocol-select');
+  const requested = selector.value;
+  selector.value = engine.protocolId || '';
+  if (protocolChanging || starting || updateHold || pendingSession || !selectedMode) return;
+  const id = requested === 'manual' ? undefined : isProtocol(requested) ? requested : null;
+  if (id === null || id === engine.protocolId) return;
+  protocolChanging = true; render();
+  try {
+    if (active() && !await confirmAction(id ? `Encerrar o treino atual e carregar ${PROTOCOLS[id].name}? O novo treino só começa ao tocar em Iniciar.` : 'Encerrar o treino atual e voltar às últimas configurações manuais?')) return;
+    if (workoutLock.owned) removeSavedWorkout();
+    stopAudioTest(); engine.end(); workoutLock.release();
+    if (id) engine.configureProtocol(id); else engine.configure(settings.training);
+    signals.reset(); playlist.reset(); currentPhoto = ''; run = '';
+    try { storage.setItem(PROTOCOL_KEY,id || ''); } catch { notify('Treino carregado, mas não foi possível guardar a seleção neste dispositivo.'); }
+  } finally { protocolChanging = false; render(); $('#timer-panel').focus({preventScroll:true}); }
+});
 let lastRenderKey = '';
 function render(force = true): void {
   const s = engine.snapshot();
-  const key = `${s.status}:${s.phase}:${s.round}:${s.rounds}:${Math.ceil(s.remaining/1000)}:${s.duration}:${photoMoment(s,selectedMode)}`;
+  const key = `${engine.protocolId}:${s.status}:${s.phase}:${s.round}:${s.rounds}:${Math.ceil(s.remaining/1000)}:${s.duration}:${photoMoment(s,selectedMode)}`;
   if (!force && key === lastRenderKey) return;
   lastRenderKey = key;
   const effective = effectiveSettings();
   const running = s.status === 'running', paused = s.status === 'paused', inSession = running || paused;
   const done = s.status === 'finished' || s.status === 'ended';
+  const protocol = engine.protocolId;
+  const selector = $<HTMLSelectElement>('#protocol-select');
+  if (selector.value !== (protocol || '')) selector.value = protocol || '';
+  selector.disabled = starting || updateHold || !!pendingSession || protocolChanging;
+  const stage = protocolStage(protocol,s.phase,s.round);
+  if ($('#protocol-stage').textContent !== stage) $('#protocol-stage').textContent = stage;
+  $('#protocol-stage').hidden = !stage;
   const phaseName = s.phase === 'fight' ? 'LUTA' : s.phase === 'rest' ? 'DESCANSO' : 'PREPARAÇÃO';
   const phaseLabel = s.status === 'idle' ? 'PRONTO' : s.status === 'finished' ? 'TREINO FINALIZADO' : s.status === 'ended' ? 'TREINO ENCERRADO' : `${paused ? 'PAUSADO · ' : ''}${phaseName}`;
   if ($('#phase-label').dataset.label !== phaseLabel) { $('#phase-label').dataset.label = phaseLabel; $('#phase-label').textContent = phaseLabel; }
@@ -214,7 +242,7 @@ function render(force = true): void {
   $('#clock-note').textContent = s.status === 'idle' ? 'Prepare-se. O próximo round é seu.' : paused ? 'Treino pausado. Continue quando estiver pronto.' : done ? 'Treino feito. Evolução conquistada.' : s.phase === 'rest' ? 'Hidrate. Respire. Prepare o próximo round.' : s.phase === 'preparation' ? 'Posicione-se. O round começa em instantes.' : s.remaining <= 3000 ? '3 · 2 · 1 · ATÉ O SINAL' : 'Presença no tatame. Foco no próximo movimento.';
   const primaryLabel = running ? 'Pausar' : paused ? 'Continuar' : done ? 'Novo treino' : 'Iniciar';
   if ($('#primary').dataset.label !== primaryLabel) { $('#primary').dataset.label = primaryLabel; $('#primary').innerHTML = icon(running ? 'pause' : 'play') + `<span>${primaryLabel}</span>`; }
-  $<HTMLButtonElement>('#primary').disabled = starting || updateHold || !!pendingSession || !selectedMode;
+  $<HTMLButtonElement>('#primary').disabled = starting || protocolChanging || updateHold || !!pendingSession || !selectedMode;
   $<HTMLButtonElement>('#update-app').disabled = inSession;
   $('#update-app').title = inSession ? 'Encerre o treino antes de atualizar' : 'Buscar e aplicar atualização';
   $<HTMLButtonElement>('#change-mode').disabled = inSession;
@@ -244,7 +272,7 @@ async function acquireWorkout(): Promise<boolean> {
   return success;
 }
 $('#primary').addEventListener('click', async () => {
-  if (!selectedMode || pendingSession || starting || updateHold) return;
+  if (!selectedMode || pendingSession || starting || protocolChanging || updateHold) return;
   if (engine.snapshot().status === 'running') {
     processSignals(engine.tick()); engine.pause(); audio.stop(); persistWorkout(true); render(); return;
   }
@@ -254,7 +282,7 @@ $('#primary').addEventListener('click', async () => {
   try {
     if (!await acquireWorkout()) return;
     if (engine.snapshot().status === 'paused') engine.resume();
-    else { engine.configure({ ...settings.training, preparation:3 }); run = createId(); signals.reset(); playlist.reset(); clock.checkpoint(); engine.start(); }
+    else { if (engine.protocolId) engine.configureProtocol(engine.protocolId); else engine.configure({ ...settings.training, preparation:3 }); run = createId(); signals.reset(); playlist.reset(); clock.checkpoint(); engine.start(); }
     processSignals(); persistWorkout(true);
   } catch (error) {
     if (!active()) workoutLock.release();
@@ -273,8 +301,8 @@ $('#restore-session').addEventListener('click', async () => {
     if (!saved.session) { notify(saved.warning || 'O treino salvo não está mais disponível.'); pendingSession = undefined; $('#restore-banner').hidden = true; workoutLock.release(); return; }
     const session = saved.session; selectedMode = session.mode; run = session.run;
     engine.restore(session.capture,saved.elapsedMs || 0);
-    settings = { ...settings, training: { ...session.capture.training } };
-    try { saveSettings(storage, settings); } catch { /* Recovery can still work without rewriting preferences. */ }
+    if (!session.capture.protocol) settings = { ...settings, training: { ...session.capture.training } };
+    try { saveSettings(storage, settings); storage.setItem(PROTOCOL_KEY,engine.protocolId || ''); } catch { /* Recovery can still work without rewriting preferences. */ }
     signals.reset(); signals.seed(engine.snapshot()); playlist.reset(); pendingSession = undefined; $('#restore-banner').hidden = true;
     clock.checkpoint(); applyAppearance(); processSignals([],true); persistWorkout(true);
     notify('Treino recuperado. Nenhum sinal antigo foi reproduzido.');

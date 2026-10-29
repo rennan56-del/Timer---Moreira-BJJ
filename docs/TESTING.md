@@ -95,3 +95,13 @@ O fluxo percorre 12 ciclos completos com edição dos dois tempos, CONCLUÍDO, S
 Falha reproduzida no teste: virtualizar linhas que eram alvo do toque removia esse alvo durante o gesto e podia impedir touchend de chegar ao seletor. A área de toque agora é fixa e o evento de término volta a ser recebido. O encaixe não é forçado enquanto há um toque ativo. As execuções de inércia/alinhamento passaram após a correção.
 
 Capturas: `artifacts/editor-luta-mobile.png` e `artifacts/editor-descanso-landscape.png`. Relatório: `artifacts/wheel-results.json`. Não houve teste em Android físico/Roku nem publicação no GitHub ou na hospedagem nesta revisão. CPU limitada e toque emulado não certificam desempenho no aparelho do usuário.
+
+## Protocolos 1.4.0 — envio ao GitHub solicitado, sem publicação da hospedagem
+
+Executados: `npm test` (92 aprovados, incluindo 13 novos testes de protocolos), `python3 tests/browser-minimal.py` (40 cenários aprovados), `python3 tests/browser-protocols.py` (12 cenários aprovados) e `WHEEL_CPU_RATE=4 python3 tests/browser-wheels.py` (12 cenários aprovados). São 64 cenários de navegador, sem falhas nas execuções completas.
+
+Cada protocolo percorreu todas as etapas no Modo Moreira e no Modo BJJ. Foram verificados preparação, nenhuma partida automática ao selecionar, pausa/retomada, durações exatas, ausência de descanso final, identificação dos alunos, confirmação/cancelamento de troca/saída, retorno às últimas configurações manuais e recuperação de protocolo pausado após reload. Editar as durações manuais enquanto um protocolo está selecionado não modifica o protocolo e fica disponível ao sair dele.
+
+Os testes nativos verificam os três bipes curtos e um longo em todas as etapas, sem repetição na pausa/retomada; compensação de atraso numa luta variável; validação de capturas e compatibilidade com sessões manuais antigas. Nos drills por aluno, há exatamente sete intervalos de 30 s, com uma única troca de aluno entre as rodadas quatro e cinco.
+
+`artifacts/protocol-results.json` contém o relatório; `artifacts/protocol-{moreira,bjj}-{mobile,tv}.png` contém capturas. O navegador usa relógio controlado para as sessões longas. Não foram testados Android/Roku físicos, música simultânea ou acústica real. Não foi usada VPS nem serviço pago.

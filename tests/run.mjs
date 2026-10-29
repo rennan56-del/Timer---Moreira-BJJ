@@ -9,3 +9,5 @@ import './id.test.mjs';
 import './assets.test.mjs';
 import './photo-windows.test.mjs';
 import './updates.test.mjs';
+
+import './protocols.test.mjs';

@@ -1,3 +1,5 @@
+import { isProtocol, protocolTraining, protocolDuration } from './protocols.js';
+import type { ProtocolId } from './protocols.ts';
 import type { Training, Phase, Status, TimerSnapshot, Transition } from '../types.ts';
 export function validateTraining(config: Training): Training {
   for (const [key, max, min] of [['fight', 86400, 1], ['rest', 86400, 0], ['rounds', 999, 1], ['preparation', 60, 0]] as const) {
@@ -8,6 +10,7 @@ export function validateTraining(config: Training): Training {
 export interface TimerCapture {
   version: 1;
   training: Training;
+  protocol?: ProtocolId;
   status: Status;
   phase: Phase;
   round: number;
@@ -22,18 +25,30 @@ export function validateCapture(value: unknown): TimerCapture {
   if (data.version !== 1 || !data.training || typeof data.training !== 'object' || Array.isArray(data.training)) throw new Error('Versão de treino salvo inválida.');
   const raw = data.training as Record<string, unknown>;
   const training = validateTraining({ fight: raw.fight as number, rest: raw.rest as number, rounds: raw.rounds as number, preparation: raw.preparation as number });
+  const protocol = data.protocol;
+  if (protocol !== undefined) {
+    if (!isProtocol(protocol)) throw new Error('Protocolo salvo inválido.');
+    const expected = protocolTraining(protocol);
+    if (Object.keys(expected).some(key => training[key as keyof Training] !== expected[key as keyof Training])) throw new Error('Durações do protocolo salvo inválidas.');
+  }
   if (!['idle','running','paused','finished','ended'].includes(String(data.status)) || !['preparation','fight','rest'].includes(String(data.phase))) throw new Error('Etapa do treino salvo inválida.');
   const status = data.status as Status, phase = data.phase as Phase;
   const round = data.round as number, remaining = data.remaining as number, revision = data.revision as number;
   if (!Number.isInteger(round) || round < 1 || round > training.rounds || !Number.isSafeInteger(revision) || revision < 0 || typeof remaining !== 'number' || !Number.isFinite(remaining)) throw new Error('Valores do treino salvo inválidos.');
-  if (remaining > training[phase] * 1000 || (status !== 'running' && remaining < 0)) throw new Error('Tempo do treino salvo inválido.');
-  if (phase === 'preparation' && (round !== 1 || training.preparation === 0) || phase === 'rest' && (round === training.rounds || training.rest === 0)) throw new Error('Sequência do treino salvo inválida.');
+  if (remaining > (protocol ? protocolDuration(protocol as ProtocolId,phase,round) : training[phase]) * 1000 || (status !== 'running' && remaining < 0)) throw new Error('Tempo do treino salvo inválido.');
+  if (phase === 'preparation' && (round !== 1 || training.preparation === 0) || phase === 'rest' && (round === training.rounds || (protocol ? protocolDuration(protocol as ProtocolId,'rest',round) : training.rest) === 0)) throw new Error('Sequência do treino salvo inválida.');
   if (status === 'idle' && (phase !== 'fight' || round !== 1 || remaining !== training.fight * 1000)) throw new Error('Treino inicial salvo inválido.');
   if (status === 'finished' && (phase !== 'fight' || round !== training.rounds || remaining !== 0) || status === 'ended' && remaining !== 0) throw new Error('Encerramento do treino salvo inválido.');
-  return { version: 1, training, status, phase, round, remaining, revision };
+  return { version: 1, training, status, phase, round, remaining, revision, ...(protocol ? {protocol:protocol as ProtocolId} : {}) };
 }
 export class TimerEngine {
   private config: Training;
+  private protocol?: ProtocolId;
+  get protocolId(): ProtocolId | undefined { return this.protocol; }
+  configureProtocol(id: ProtocolId): void {
+    const training = protocolTraining(id);
+    this.configure(training); this.protocol = id; this.reset();
+  }
   private status: Status = 'idle';
   private phase: Phase = 'fight';
   private round = 1;
@@ -46,7 +61,7 @@ export class TimerEngine {
   }
   configure(config: Training): void {
     if (this.status === 'running' || this.status === 'paused') throw new Error('Encerre o treino antes de alterar os tempos.');
-    this.config = validateTraining(config);
+    this.config = validateTraining(config); this.protocol = undefined;
     this.reset();
   }
   start(): void {
@@ -57,7 +72,7 @@ export class TimerEngine {
     this.deadline = this.now() + this.duration();
     this.revision++;
   }
-  private duration(): number { return this.config[this.phase] * 1000; }
+  private duration(): number { return (this.protocol ? protocolDuration(this.protocol,this.phase,this.round) : this.config[this.phase]) * 1000; }
   tick(): Transition[] {
     const transitions: Transition[] = [];
     if (this.status !== 'running') return transitions;
@@ -68,7 +83,7 @@ export class TimerEngine {
       if (from === 'preparation') this.phase = 'fight';
       else if (from === 'fight' && this.round === this.config.rounds) {
         this.status = 'finished'; this.frozen = 0;
-      } else if (from === 'fight' && this.config.rest > 0) this.phase = 'rest';
+      } else if (from === 'fight' && (this.protocol ? protocolDuration(this.protocol,'rest',this.round) : this.config.rest) > 0) this.phase = 'rest';
       else { this.phase = 'fight'; this.round++; }
       this.revision++;
       transitions.push({ from, to: this.status === 'finished' ? 'finished' : this.phase, round, at });
@@ -105,13 +120,13 @@ export class TimerEngine {
   capture(): TimerCapture {
     return { version: 1, training: { ...this.config }, status: this.status, phase: this.phase,
       round: this.round, remaining: this.status === 'running' ? this.deadline - this.now() : this.frozen,
-      revision: this.revision };
+      revision: this.revision, ...(this.protocol ? {protocol:this.protocol} : {}) };
   }
   /** Restoration advances expired phases silently; callers seed their signal tracker. */
   restore(value: unknown, elapsedMs = 0): void {
     const data = validateCapture(value);
     if (!Number.isFinite(elapsedMs) || elapsedMs < 0 || elapsedMs > Number.MAX_SAFE_INTEGER) throw new Error('Tempo de recuperação inválido.');
-    this.config = data.training; this.status = data.status; this.phase = data.phase;
+    this.config = data.training; this.protocol = data.protocol; this.status = data.status; this.phase = data.phase;
     this.round = data.round; this.revision = data.revision; this.frozen = Math.max(0, data.remaining);
     this.deadline = this.now() + data.remaining - (data.status === 'running' ? elapsedMs : 0);
     this.tick();
