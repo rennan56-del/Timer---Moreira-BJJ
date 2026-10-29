@@ -1,5 +1,5 @@
 {
-  "version": "1.3.1",
+  "version": "1.3.2",
   "native": {
     "command": "npm test",
     "passed": 79,
@@ -9,7 +9,7 @@
     "command": "python3 tests/browser-minimal.py",
     "passed": 40,
     "failed": 0,
-    "cache": "const CACHE = 'moreira-bjj-15c0b3002d490a';",
+    "cache": "const CACHE = 'moreira-bjj-fd15605d98b8d4';",
     "scenarios": [
       {
         "test": "Nova abertura exige escolha de modo sem iniciar cronômetro ou tocar sons",
@@ -208,12 +208,33 @@
     }
   },
   "release": {
-    "version": "1.3.1",
-    "status": "validated; prepared for user-requested test deployment",
+    "version": "1.3.2",
+    "status": "local only; not published",
     "native_passed": 79,
-    "browser_passed": 40,
-    "wheel_scenarios_passed": 9,
+    "browser_regression_passed": 40,
+    "focused_editor_passed": 12,
     "cpu_throttle": 4,
-    "github_pushed": false
+    "github_pushed": false,
+    "hosted": false
+  },
+  "focused_editor": {
+    "passed": 12,
+    "scenarios": [
+      "LUTA abre tela exclusiva com dois seletores, vizinhos acima/abaixo, sem teclado e no máximo 22 linhas",
+      "12 ciclos completos: LUTA/DESCANSO → CONCLUÍDO → SALVAR fecha sem X; persistência e relógio imediato",
+      "Rascunho sobrevive à navegação; Voltar/Escape cancelam só o editor; fechar sem salvar descarta mudanças",
+      "Toque emulado: rolagem nativa com inércia, encaixe automático e CONCLUÍDO captura seleção",
+      "Toque no vizinho seleciona valor; dedo apoiado não é interrompido pelo encaixe",
+      "CONCLUÍDO lê a posição atual antes de scrollend, sem atraso ou dependência do debounce",
+      "Persistência após reload, limites de 24h e luta zero inválida mantêm editor aberto sem perder rascunho",
+      "Falha de armazenamento mantém formulário/rascunho; nova tentativa salva e fecha automaticamente",
+      "Testar som não grava tempos ainda em rascunho nem perde a edição",
+      "Editor parado sem mutações no timer; orientação horizontal preserva seleção e CONCLUÍDO visível",
+      "3 ciclos de pausa/salvar som/retomada não reiniciam treino; edição de tempos bloqueada durante sessão",
+      "Nenhuma exceção JavaScript durante o fluxo completo"
+    ],
+    "idle_mutations_per_second": 0,
+    "physical_android": false,
+    "cpu_throttle": 4.0
   }
 }

@@ -83,3 +83,15 @@ Cada execução dos seletores percorre 12 ciclos de edição/salvamento imediato
 A medição via MutationObserver no Chromium em 390×844, com configurações abertas e timer parado, registrou 280 mutações no DOM por segundo na versão anterior e zero na corrigida. Isso comprova a remoção do trabalho repetitivo nessa condição, não uma certificação de FPS nem reprodução do congelamento no aparelho do usuário. Não houve acesso ao Android físico ou à Roku. A limitação de CPU do Chromium também não simula integralmente o hardware, a GPU ou o sistema Android.
 
 A primeira tentativa de teste revelou uma rolagem programática excessivamente longa ao usar End até 1440 minutos. Saltos grandes passaram a ser instantâneos; movimentos curtos continuam suaves. As execuções completas finais passaram depois dessa correção. Captura: `artifacts/wheel-settings-mobile.png`; relatório: `artifacts/wheel-results.json`. A publicação da versão 1.3.1 na hospedagem de teste foi solicitada pelo usuário após a validação local. Não houve envio ao GitHub.
+
+## Editor exclusivo 1.3.2 — somente local
+
+A gravação anexada tem 14,295 segundos. A sequência mostra a lista principal, o editor de luta, CONCLUÍDO, o editor de descanso e o retorno à lista. O fluxo foi implementado preservando o motor, a interface do cronômetro e as bibliotecas.
+
+Executados após a implementação: `npm test` (79 aprovados), `python3 tests/browser-minimal.py` (40 cenários aprovados) e `WHEEL_CPU_RATE=4 python3 tests/browser-wheels.py` (12 cenários aprovados). São 52 cenários de navegador, sem falhas na execução final. Houve também uma execução anterior completa de 11 cenários do editor em CPU normal, antes de acrescentar o teste de toque no vizinho/dedo apoiado.
+
+O fluxo percorre 12 ciclos completos com edição dos dois tempos, CONCLUÍDO, SALVAR, fechamento automático, persistência, atualização imediata do relógio e reabertura. Verifica cancelamento, rascunho na navegação, erro de armazenamento com nova tentativa, som sem gravar tempos em rascunho, limites, inércia e alinhamento, toque num valor vizinho, orientação horizontal e três ciclos de pausa/configurações/retomada. O editor monta no máximo 22 linhas e o timer parado mantém zero mutações por segundo na área principal.
+
+Falha reproduzida no teste: virtualizar linhas que eram alvo do toque removia esse alvo durante o gesto e podia impedir touchend de chegar ao seletor. A área de toque agora é fixa e o evento de término volta a ser recebido. O encaixe não é forçado enquanto há um toque ativo. As execuções de inércia/alinhamento passaram após a correção.
+
+Capturas: `artifacts/editor-luta-mobile.png` e `artifacts/editor-descanso-landscape.png`. Relatório: `artifacts/wheel-results.json`. Não houve teste em Android físico/Roku nem publicação no GitHub ou na hospedagem nesta revisão. CPU limitada e toque emulado não certificam desempenho no aparelho do usuário.

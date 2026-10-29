@@ -329,3 +329,25 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
 #settings-feedback:empty { display:none; }
 /* Keep the existing backdrop color; avoid a live full-screen blur over the ticking timer. */
 .settings-dialog::backdrop { backdrop-filter:none; }
+/* Focused duration editor: only two native-scrolling wheels are mounted here. */
+.duration-choice { grid-column:1/-1; display:flex; align-items:center; gap:16px; width:100%; min-height:60px; border:1px solid var(--line); background:#101612; color:var(--ink); border-radius:8px; padding:12px 16px; text-align:left; }
+.duration-choice strong { margin-left:auto; font-size:24px; font-variant-numeric:tabular-nums; }
+.duration-choice:disabled,.training-fields:disabled .duration-choice { opacity:.55; }
+.settings-dialog.editing-time { inset:0; margin:0; width:100%; height:100dvh; max-width:none; max-height:none; border:0; border-radius:0; overflow:hidden; }
+.editing-time>.dialog-heading,.editing-time>.settings-tabs { display:none; }
+.editing-time .settings-body { height:100%; padding:0; }
+.time-editor { height:100%; display:flex; flex-direction:column; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.time-editor-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:16px 12px; border-bottom:1px solid var(--line); }
+.time-editor-heading h2 { font-size:18px; margin:0; }
+.time-editor-heading .button { padding:10px; font-size:12px; min-height:44px; }
+#time-done { color:var(--lime); }
+.time-editor-wheels { display:flex; gap:28px; width:min(360px,85%); margin:auto; }
+.time-editor-wheels .wheel-field>span { text-align:center; margin-bottom:12px; font-size:12px; }
+.time-editor-wheels .wheel-picker { height:200px; background:linear-gradient(to bottom,transparent 79px,#ffffff12 80px,#ffffff12 119px,transparent 120px); }
+.time-editor-wheels .wheel-row { font-size:30px; }
+.time-editor-wheels .wheel-row:not(.selected) { opacity:.5; }
+#time-error { margin:0; padding:12px; text-align:center; min-height:44px; }
+@media (orientation:landscape) and (max-height:430px) { .time-editor-heading { padding:3px 12px; } .time-editor-wheels .wheel-field>span { margin-bottom:4px; } #time-error { min-height:24px; padding:2px; } }
+
+/* Keep the native touch target mounted while the virtualized numbers change. */
+.wheel-row { pointer-events:none; }

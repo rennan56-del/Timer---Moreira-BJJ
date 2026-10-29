@@ -1,4 +1,4 @@
-# Moreira BJJ Timer — 1.3.1
+# Moreira BJJ Timer — 1.3.2
 
 Cronômetro de academia com números gigantes, preparação amarela, luta verde-limão e descanso vermelho. O modo Moreira é direto e profissional; o modo BJJ mostra as fotos nos primeiros e últimos três segundos de cada fase e na finalização, sem frases humorísticas. O relógio nunca é coberto pelas imagens.
 
@@ -7,7 +7,7 @@ Versão de teste hospedada: https://timer-moreira-bjj-teste.rennan56.chatgpt.sit
 ## Usar
 
 1. Escolha **Modo Moreira** ou **Modo BJJ** ao abrir.
-2. Toque na engrenagem para ajustar **luta, descanso, rounds e som**. Os tempos usam seletores de minutos e segundos com rolagem vertical; não é necessário digitar. Toque em Salvar para aplicar e persistir os valores.
+2. Toque na engrenagem para ajustar **luta, descanso, rounds e som**. Toque em **LUTA** ou **DESCANSO** para abrir o editor exclusivo de minutos/segundos por rolagem. **CONCLUÍDO** confirma o tempo no rascunho e volta às configurações; **SALVAR** aplica, persiste e fecha as configurações automaticamente. Não há digitação.
 3. Toque **Iniciar**. A preparação é sempre de três segundos.
 4. Pause, continue, reinicie ou encerre pelos botões principais. O menu **•••** reúne tela cheia, reativação de áudio, instalação, avanço de etapa e ajuda.
 
@@ -110,3 +110,9 @@ Licença do código: [MIT](LICENSE). Fonte Open Sans sob Apache 2.0, com aviso/l
 ## Correção das configurações — 1.3.1
 
 O loop continua conferindo o motor e os sinais a cada 50 ms durante o treino, mas só redesenha a interface quando muda a informação exibida. Parado, consulta a cada 250 ms sem reescrever o DOM. O diálogo preserva a cor existente e dispensa o desfoque custoso do fundo. Os seletores usam rolagem nativa, renderizam no máximo 11 linhas por coluna e não capturam gestos globais. Salvar lê imediatamente a posição atual, mesmo antes do fim da inércia. Em falha de armazenamento, informa o erro e preserva os valores anteriores. A versão 1.3.1 foi preparada para teste na hospedagem existente, após solicitação do usuário. O envio ao GitHub permanece separado.
+
+## Editor exclusivo — 1.3.2 local, não publicada
+
+Fluxo baseado na gravação de tela enviada: lista de tempos → editor exclusivo com dois seletores e cinco posições visíveis → CONCLUÍDO → configurações → SALVAR → cronômetro. Voltar ou Escape no editor descartam apenas o valor ainda não confirmado; fechar as configurações sem salvar descarta o rascunho. Testar Som não persiste os tempos em rascunho. Erros de validação ou armazenamento mantêm a tela aberta para correção e nova tentativa.
+
+A superfície tocada é permanente: os números virtualizados não recebem eventos diretamente. Isso evita perder touchend quando uma linha desaparece durante a rolagem. O encaixe aguarda o término do toque/inércia, e CONCLUÍDO lê a posição imediatamente. Apenas duas colunas (até 22 linhas) são montadas no editor. A versão online anterior não foi alterada nesta revisão, conforme solicitado.
