@@ -314,3 +314,18 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
  .photo-wrap,.photo-wrap img { max-height:37dvh; }
  .academy-watermark { height:85%; width:min(45vw,420px); }
 }
+/* Time input uses native touch scrolling; no keyboard, gesture interception or global listeners. */
+.wheel-field { min-width:0; flex:1; }
+.wheel-field>span { display:block; font-size:10px; color:var(--muted); margin-bottom:6px; }
+.wheel-picker { position:relative; height:120px; overflow-y:auto; overscroll-behavior-y:contain; touch-action:pan-y; scrollbar-width:none; border:1px solid var(--line); border-radius:8px; background:linear-gradient(to bottom,transparent 39px,#ffffff12 40px,#ffffff12 79px,transparent 80px); contain:layout paint; }
+.wheel-picker::-webkit-scrollbar { display:none; }
+.wheel-picker:focus-visible { outline:2px solid var(--lime); outline-offset:2px; }
+.wheel-track { position:relative; }
+.wheel-row { position:absolute; width:100%; height:40px; line-height:40px; text-align:center; font-size:23px; font-weight:650; color:var(--muted); user-select:none; }
+.wheel-row.selected { color:var(--ink); }
+.duration-input>span { margin-top:16px; }
+.training-fields:disabled .wheel-picker { pointer-events:none; overflow:hidden; opacity:.5; }
+#settings-feedback { font-size:13px; margin:0; }
+#settings-feedback:empty { display:none; }
+/* Keep the existing backdrop color; avoid a live full-screen blur over the ticking timer. */
+.settings-dialog::backdrop { backdrop-filter:none; }

@@ -1,4 +1,4 @@
-# Moreira BJJ Timer — 1.3
+# Moreira BJJ Timer — 1.3.1
 
 Cronômetro de academia com números gigantes, preparação amarela, luta verde-limão e descanso vermelho. O modo Moreira é direto e profissional; o modo BJJ mostra as fotos nos primeiros e últimos três segundos de cada fase e na finalização, sem frases humorísticas. O relógio nunca é coberto pelas imagens.
 
@@ -7,7 +7,7 @@ Versão de teste hospedada: https://timer-moreira-bjj-teste.rennan56.chatgpt.sit
 ## Usar
 
 1. Escolha **Modo Moreira** ou **Modo BJJ** ao abrir.
-2. Toque na engrenagem para ajustar **luta, descanso, rounds e som**.
+2. Toque na engrenagem para ajustar **luta, descanso, rounds e som**. Os tempos usam seletores de minutos e segundos com rolagem vertical; não é necessário digitar. Toque em Salvar para aplicar e persistir os valores.
 3. Toque **Iniciar**. A preparação é sempre de três segundos.
 4. Pause, continue, reinicie ou encerre pelos botões principais. O menu **•••** reúne tela cheia, reativação de áudio, instalação, avanço de etapa e ajuda.
 
@@ -81,6 +81,9 @@ A stack é TypeScript modular e DOM nativo, preservando a solução sem dependê
 ```bash
 npm test
 npm run test:browser
+python3 tests/browser-wheels.py
+# Opcional: repetir a edição sob CPU limitada no Chromium
+WHEEL_CPU_RATE=4 python3 tests/browser-wheels.py
 ```
 
 O primeiro usa bibliotecas nativas do Node. O segundo usa Python, Playwright e Chromium previamente instalados; não baixa dependências. Cobertura e resultados executados estão em [TESTING.md](docs/TESTING.md) e [VALIDATION.json](docs/VALIDATION.json). Capturas ficam em `artifacts/`, ignorado pelo Git. Emulação touch não certifica Android ou Roku físicos.
@@ -103,3 +106,7 @@ Repositório: https://github.com/rennan56-del/Timer---Moreira-BJJ. O envio desta
 Para atualizar o GitHub posteriormente, revise `git diff`, execute os testes, faça commit e use `git push origin main`. Preserve o histórico remoto e não use push forçado. `artifacts/`, `dist/`, credenciais e uploads privados ficam fora do Git. Para hospedar a PWA, publique o conteúdo de `dist/` em hospedagem estática HTTPS; não é necessário backend.
 
 Licença do código: [MIT](LICENSE). Fonte Open Sans sob Apache 2.0, com aviso/licença em `public/fonts/`. As fotografias não são relicenciadas pela licença MIT.
+
+## Correção das configurações — 1.3.1
+
+O loop continua conferindo o motor e os sinais a cada 50 ms durante o treino, mas só redesenha a interface quando muda a informação exibida. Parado, consulta a cada 250 ms sem reescrever o DOM. O diálogo preserva a cor existente e dispensa o desfoque custoso do fundo. Os seletores usam rolagem nativa, renderizam no máximo 11 linhas por coluna e não capturam gestos globais. Salvar lê imediatamente a posição atual, mesmo antes do fim da inércia. Em falha de armazenamento, informa o erro e preserva os valores anteriores. A versão 1.3.1 foi preparada para teste na hospedagem existente, após solicitação do usuário. O envio ao GitHub permanece separado.

@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "native": {
     "command": "npm test",
     "passed": 79,
@@ -9,7 +9,7 @@
     "command": "python3 tests/browser-minimal.py",
     "passed": 40,
     "failed": 0,
-    "cache": "CACHE = 'moreira-bjj-a254284a1b0cb7';",
+    "cache": "const CACHE = 'moreira-bjj-15c0b3002d490a';",
     "scenarios": [
       {
         "test": "Nova abertura exige escolha de modo sem iniciar cronômetro ou tocar sons",
@@ -174,5 +174,46 @@
     ]
   },
   "physical_tests": "Android, Roku, música concorrente e audibilidade física não executados",
-  "photo_authorization": "Usuário confirmou divulgação pública de todos os retratados na conversa; detalhes em docs/IMAGES.md"
+  "photo_authorization": "Usuário confirmou divulgação pública de todos os retratados na conversa; detalhes em docs/IMAGES.md",
+  "local_settings_fix": {
+    "published": false,
+    "native_passed": 79,
+    "browser_regression_passed": 40,
+    "wheel_scenarios_passed": 9,
+    "wheel_runs": [
+      "normal CPU",
+      "4x Chromium CPU throttle"
+    ],
+    "edit_save_navigation_cycles_per_run": 12,
+    "pause_resume_cycles_per_run": 3,
+    "baseline_idle_dom_mutations_per_second": 280,
+    "fixed_idle_dom_mutations_per_second": 0,
+    "physical_android": false,
+    "wheel_results": {
+      "passed": 9,
+      "scenarios": [
+        "Sem digitação/teclado e no máximo 55 linhas montadas nos cinco seletores",
+        "12 ciclos de edição/salvamento imediato/fechar/reabrir/navegação preservam todos os valores",
+        "Gesto touch emulado rola com inércia, alinha uma linha e salva a seleção",
+        "Limites de 0–1440 minutos, teclado acessível, luta zero rejeitada e descanso zero aceito",
+        "Configurações persistem após recarregar e escolher modo novamente",
+        "Falha de armazenamento informa erro e mantém configuração anterior; nova tentativa é possível",
+        "Zero mutações na tela parada durante 1 segundo com configurações abertas",
+        "3 ciclos de pausa/configurações/salvar som/retomada preservam treino e bloqueiam edição dos tempos",
+        "Nenhuma exceção JavaScript durante todos os ciclos"
+      ],
+      "idle_mutations_per_second": 0,
+      "physical_android": false,
+      "cpu_throttle": 4.0
+    }
+  },
+  "release": {
+    "version": "1.3.1",
+    "status": "validated; prepared for user-requested test deployment",
+    "native_passed": 79,
+    "browser_passed": 40,
+    "wheel_scenarios_passed": 9,
+    "cpu_throttle": 4,
+    "github_pushed": false
+  }
 }

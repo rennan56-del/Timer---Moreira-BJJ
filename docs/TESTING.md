@@ -73,3 +73,13 @@ Se o Android pausar a música mesmo no Modo Música, use o timer silencioso ou u
 ## Revisão 1.3
 
 O som Academia usa bipes agudos de 2400 Hz/230 ms e encerramento de 1080 Hz/1050 ms, com limite agregado de ganho. Foram adicionados testes de migração respeitando silêncio, janelas de fotos sem frases, logo oficial no topo e ao fundo, atualização manual bloqueada durante treino e preservação do estado. A análise dos dois vídeos fornecidos está em [AUDIO-REFERENCE.md](AUDIO-REFERENCE.md). O segundo vídeo tem faixa de áudio silenciosa.
+
+## Correção 1.3.1: edição e desempenho
+
+Comandos executados: `npm test` (79 aprovados), `python3 tests/browser-minimal.py` (40 cenários aprovados), `python3 tests/browser-wheels.py` e `WHEEL_CPU_RATE=4 python3 tests/browser-wheels.py` (9 cenários aprovados em cada execução).
+
+Cada execução dos seletores percorre 12 ciclos de edição/salvamento imediato/fechar/reabrir/navegação, rolagem por toque emulado com alinhamento automático, limites e acesso por teclado, atualização imediata do relógio, persistência após recarregamento, falha simulada de armazenamento e recuperação, além de três ciclos de pausa/configurações/alterar som/retomada. O teste garante no máximo 55 linhas de seleção montadas no DOM e ausência de exceções JavaScript.
+
+A medição via MutationObserver no Chromium em 390×844, com configurações abertas e timer parado, registrou 280 mutações no DOM por segundo na versão anterior e zero na corrigida. Isso comprova a remoção do trabalho repetitivo nessa condição, não uma certificação de FPS nem reprodução do congelamento no aparelho do usuário. Não houve acesso ao Android físico ou à Roku. A limitação de CPU do Chromium também não simula integralmente o hardware, a GPU ou o sistema Android.
+
+A primeira tentativa de teste revelou uma rolagem programática excessivamente longa ao usar End até 1440 minutos. Saltos grandes passaram a ser instantâneos; movimentos curtos continuam suaves. As execuções completas finais passaram depois dessa correção. Captura: `artifacts/wheel-settings-mobile.png`; relatório: `artifacts/wheel-results.json`. A publicação da versão 1.3.1 na hospedagem de teste foi solicitada pelo usuário após a validação local. Não houve envio ao GitHub.

@@ -66,7 +66,8 @@ def save_form(page):
 def configure(page, fight=5, rest=5, rounds=2, preset=None):
     open_settings(page)
     for key,value in {'fightMinutes':fight//60,'fightSeconds':fight%60,'restMinutes':rest//60,'restSeconds':rest%60,'rounds':rounds}.items():
-        page.locator(f'[name="{key}"]').fill(str(value))
+        wheel=page.locator(f'[data-wheel="{key}"]')
+        wheel.evaluate('(el,value)=>el.scrollTop=(value-Number(el.dataset.min))*40',value)
     if preset is not None: page.locator('[name="audioPreset"]').select_option(preset)
     save_form(page)
     state=settings(page)

@@ -189,8 +189,13 @@ function processSignals(events: Transition[] = [], silent = false): void {
     workoutLock.release();
   }
 }
-function render(): void {
-  const s = engine.snapshot(), effective = effectiveSettings();
+let lastRenderKey = '';
+function render(force = true): void {
+  const s = engine.snapshot();
+  const key = `${s.status}:${s.phase}:${s.round}:${s.rounds}:${Math.ceil(s.remaining/1000)}:${s.duration}:${photoMoment(s,selectedMode)}`;
+  if (!force && key === lastRenderKey) return;
+  lastRenderKey = key;
+  const effective = effectiveSettings();
   const running = s.status === 'running', paused = s.status === 'paused', inSession = running || paused;
   const done = s.status === 'finished' || s.status === 'ended';
   const phaseName = s.phase === 'fight' ? 'LUTA' : s.phase === 'rest' ? 'DESCANSO' : 'PREPARAÇÃO';
@@ -358,9 +363,9 @@ function loop(): void {
   if (!document.hidden && !lifecycleRecovering && selectedMode) {
     if (active() && !workoutLock.owned) loseOwnership();
     else { processSignals(engine.tick()); persistWorkout(); }
-    render();
+    render(false);
   }
-  setTimeout(loop, document.hidden ? 1000 : 50);
+  setTimeout(loop, document.hidden ? 1000 : active() ? 50 : 250);
 }
 function connectionStatus(): void {
   const online = navigator.onLine;

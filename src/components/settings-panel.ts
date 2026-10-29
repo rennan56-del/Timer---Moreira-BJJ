@@ -1,3 +1,4 @@
+import { WheelPicker, wheelMarkup } from './wheel-picker.js';
 import type { Settings, Photo } from '../types.ts';
 import { icon, escapeHTML as esc } from './icons.js';
 import { defaults, validateSettings } from '../storage/settings.js';
@@ -11,17 +12,19 @@ type Context = {
 type AudioPreset = 'normal' | 'gym' | 'silent';
 export class SettingsPanel {
   private tab = 'training';
+  private wheels: WheelPicker[] = [];
   private dialog = document.querySelector<HTMLDialogElement>('#settings-dialog')!;
   private body = document.querySelector<HTMLDivElement>('#settings-body')!;
   constructor(private ctx: Context) {
+    this.dialog.addEventListener('close', () => { this.wheels.forEach(wheel => wheel.dispose()); this.wheels = []; });
     document.querySelector('#close-settings')!.addEventListener('click', () => this.dialog.close());
     // Older cached layouts may still contain tabs. Their routes are normalized
     // below; the primary panel remains limited to training and sound presets.
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.addEventListener('click', () => this.render(button.dataset.tab!)));
   }
   open(tab = 'training'): void {
-    this.render(tab);
     if (!this.dialog.open) this.dialog.showModal();
+    this.render(tab);
   }
   private audioPreset(settings: Settings): AudioPreset {
     if (!settings.audio.enabled || settings.audio.volume === 0) return 'silent';
@@ -38,6 +41,7 @@ export class SettingsPanel {
     this.body.querySelector('#open-data')?.addEventListener('click', () => this.render('data'));
   }
   render(tab = this.tab): void {
+    this.wheels.forEach(wheel => wheel.dispose()); this.wheels = [];
     tab = tab === 'humor' && this.ctx.mode() === 'bjj' ? 'humor' : tab === 'data' ? 'data' : 'training';
     this.tab = tab;
     const navigation = this.dialog.querySelector<HTMLElement>('.settings-tabs');
@@ -52,18 +56,22 @@ export class SettingsPanel {
       this.body.innerHTML = `${back}<section class="library-section"><h3>Fotos da academia</h3><p class="muted">5 fotos incluídas no aplicativo. Fotos adicionadas aqui ficam somente neste dispositivo.</p></section><section class="library-section" id="photos-library"></section>`;
       this.bindSecondaryNavigation(); this.renderPhotos(); return;
     }
-    const duration = (name: string, title: string, seconds: number) => `<fieldset><legend>${title}</legend><div class="duration-input"><label>Minutos<input type="number" name="${name}Minutes" min="0" max="1440" step="1" required value="${Math.floor(seconds / 60)}"/></label><span>:</span><label>Segundos<input type="number" name="${name}Seconds" min="0" max="59" step="1" required value="${seconds % 60}"/></label></div></fieldset>`;
+    const duration = (name: string, title: string, seconds: number) => `<fieldset><legend>${title}</legend><div class="duration-input">${wheelMarkup(name+'Minutes','Minutos',Math.floor(seconds/60),0,1440)}<span>:</span>${wheelMarkup(name+'Seconds','Segundos',seconds%60,0,59)}</div></fieldset>`;
     const preset = this.audioPreset(s);
-    this.body.innerHTML = `<form id="settings-form"><h3>Configure o treino</h3>${this.ctx.active() ? '<p class="notice">Encerre o treino para alterar os tempos. O som pode ser ajustado agora.</p>' : ''}<fieldset class="training-fields" ${this.ctx.active() ? 'disabled' : ''}><div class="form-grid">${duration('fight','Tempo de luta',s.training.fight)}${duration('rest','Tempo de descanso',s.training.rest)}<label>Quantidade de rounds<input type="number" name="rounds" value="${s.training.rounds}" min="1" max="999" step="1" required/></label></div></fieldset><label>Som<select name="audioPreset"><option value="normal" ${preset === 'normal' ? 'selected' : ''}>Normal</option><option value="gym" ${preset === 'gym' ? 'selected' : ''}>Academia</option><option value="silent" ${preset === 'silent' ? 'selected' : ''}>Silencioso</option></select></label><button type="button" id="test-audio" class="button secondary">${icon('sound')} Testar Som</button><p class="hint">Preparação automática de 3 segundos. Sem descanso após o último round.</p><div class="form-save"><button class="button primary" type="submit">${icon('check')} Salvar configurações</button></div></form><details id="library-data" class="library-section"><summary>Fotos e dados</summary><div class="data-actions">${this.ctx.mode() === 'bjj' ? `<button type="button" id="open-library" class="button secondary">${icon('photo')} Fotos da academia</button>` : ''}<button type="button" id="open-data" class="button secondary">${icon('download')} Importar e exportar dados</button></div></details>`;
+    this.body.innerHTML = `<form id="settings-form"><h3>Configure o treino</h3>${this.ctx.active() ? '<p class="notice">Encerre o treino para alterar os tempos. O som pode ser ajustado agora.</p>' : ''}<fieldset class="training-fields" ${this.ctx.active() ? 'disabled' : ''}><div class="form-grid">${duration('fight','Tempo de luta',s.training.fight)}${duration('rest','Tempo de descanso',s.training.rest)}${wheelMarkup('rounds','Quantidade de rounds',s.training.rounds,1,999)}</div></fieldset><label>Som<select name="audioPreset"><option value="normal" ${preset === 'normal' ? 'selected' : ''}>Normal</option><option value="gym" ${preset === 'gym' ? 'selected' : ''}>Academia</option><option value="silent" ${preset === 'silent' ? 'selected' : ''}>Silencioso</option></select></label><button type="button" id="test-audio" class="button secondary">${icon('sound')} Testar Som</button><p class="hint">Preparação automática de 3 segundos. Sem descanso após o último round.</p><p id="settings-feedback" role="status" aria-live="polite"></p><div class="form-save"><button class="button primary" type="submit">${icon('check')} Salvar configurações</button></div></form><details id="library-data" class="library-section"><summary>Fotos e dados</summary><div class="data-actions">${this.ctx.mode() === 'bjj' ? `<button type="button" id="open-library" class="button secondary">${icon('photo')} Fotos da academia</button>` : ''}<button type="button" id="open-data" class="button secondary">${icon('download')} Importar e exportar dados</button></div></details>`;
+    this.wheels = Array.from(this.body.querySelectorAll<HTMLElement>('.wheel-picker')).map(element => new WheelPicker(element));
+    if (this.ctx.active()) this.body.querySelectorAll<HTMLElement>('.wheel-picker').forEach(element => { element.tabIndex = -1; element.setAttribute('aria-disabled','true'); });
+    const feedback = this.body.querySelector<HTMLElement>('#settings-feedback')!;
     const form = this.body.querySelector<HTMLFormElement>('#settings-form')!;
     form.addEventListener('submit', event => {
       event.preventDefault();
+      this.wheels.forEach(wheel => wheel.flush());
       const data = new FormData(form), next = structuredClone(this.ctx.getSettings());
       try {
         if (!this.ctx.active()) next.training = { fight: Number(data.get('fightMinutes')) * 60 + Number(data.get('fightSeconds')), rest: Number(data.get('restMinutes')) * 60 + Number(data.get('restSeconds')), rounds: Number(data.get('rounds')), preparation: 3 };
         this.applyAudioPreset(next, data.get('audioPreset'));
-        this.ctx.apply(validateSettings(next)); this.ctx.notify('Configurações salvas.');
-      } catch (error) { this.ctx.notify((error as Error).message); }
+        this.ctx.apply(validateSettings(next)); feedback.textContent = 'Configurações salvas.'; this.ctx.notify('Configurações salvas.');
+      } catch (error) { feedback.textContent = (error as Error).message; this.ctx.notify((error as Error).message); }
     });
     this.body.querySelector('#test-audio')!.addEventListener('click', async () => {
       try {
