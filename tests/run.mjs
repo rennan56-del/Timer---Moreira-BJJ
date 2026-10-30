@@ -11,3 +11,5 @@ import './photo-windows.test.mjs';
 import './updates.test.mjs';
 
 import './protocols.test.mjs';
+
+import './audio-recovery.test.mjs';

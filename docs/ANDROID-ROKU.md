@@ -62,3 +62,20 @@ A publicação pública exige pacote, revisão e certificação; não é automá
 - Hoje, a alternativa prioritária sem custo adicional é a PWA no Android compatível e espelhamento nativo já existente. Um computador disponível ligado à TV por HDMI é outra alternativa; cabos/adaptadores necessários podem ter custo se ainda não existirem.
 
 Antes de investir em versão nativa, validar o fluxo Android → Roku da academia é a forma mais direta de confirmar se ela realmente é necessária.
+
+## iPhone → Roku: recuperação após bloqueio (1.4.1)
+
+A retomada é observada por visibilitychange, pageshow/BFcache e foco após ausência. O motor é reconciliado antes de retomar a sinalização; o áudio tenta resume para suspended/interrupted, suspend+resume para running e uma recriação se a saída continuar sem processar. A aplicação verifica o avanço do relógio de áudio, não a audibilidade física. Recusas pedem interação por botão no aviso existente; um contexto que falhou pode ser recriado dentro desse gesto. Nenhum bip é emitido para testar a recuperação.
+
+Não são utilizados Media Session, HTMLAudio, AudioSession, áudio silencioso contínuo, setSinkId, alteração de sessão de música ou desconexão do espelhamento. Um sinkId existente só é reutilizado quando exposto pelo navegador. O iOS pode mudar ou bloquear a rota de som mesmo com o contexto running; não há API web que garanta manter a reprodução de outro aplicativo ou escolher a saída da Roku.
+
+### Roteiro físico pendente
+
+1. No iPhone real, confirme versão 1.4.1, música tocando e espelhamento ativo na Roku. Esta revisão precisa ser publicada com autorização antes desse teste pelo link habitual.
+2. Inicie um treino de rounds longos. Faça dez ciclos de bloquear por 5–30 segundos, desbloquear e voltar à página. Anote modelo do iPhone, iOS, navegador/PWA, versão Roku e rota de áudio.
+3. Confira round e tempo descontado corretamente. Verifique que os bipes futuros voltam e que nenhum bip antigo aparece em sequência. Não espere sinais enquanto o iOS suspender a execução.
+4. Se não ouvir, toque uma vez em Reativar áudio no aviso, sem reiniciar o treino nem desconectar o espelhamento. Confirme se música e saída foram mantidas pelo sistema. O menu também mantém a ação de reativar.
+5. Repita pausado, em um protocolo predefinido e perto dos segundos 3/2/1/zero; confira que não há sinais duplicados, round reiniciado ou alteração da pausa.
+6. Repita em Silencioso: não deve haver som nem tentativa automática de ativá-lo. Teste retorno após alternar aplicativo e BFcache quando aplicável.
+
+Nenhum teste físico de iPhone, Roku, música simultânea ou AirPlay foi executado neste ambiente. Se o sistema continuar pausando música ou mudando a saída, registre o comportamento exato; o aplicativo não pode garantir roteamento e foco além das APIs do navegador.

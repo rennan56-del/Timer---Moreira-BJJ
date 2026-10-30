@@ -357,3 +357,6 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
 .protocol-control select option { background:#151515; color:#fff; }
 #protocol-stage { display:block; font-size:11px; font-weight:700; margin-top:4px; }
 @media(orientation:landscape) and (max-height:650px) { .protocol-control select { max-width:240px; font-size:10px; } .panel-top { gap:10px; } #protocol-stage { font-size:10px; } }
+
+/* Situational audio action leaves the workout transport and digits accessible. */
+.toast.audio-recovery-notice { top:max(8px,env(safe-area-inset-top)); bottom:auto; }

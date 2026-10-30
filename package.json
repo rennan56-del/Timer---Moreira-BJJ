@@ -1,6 +1,6 @@
 {
   "name": "timer-moreira-bjj",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Cronômetro de jiu-jitsu offline com a resenha da Moreira BJJ",
   "type": "module",

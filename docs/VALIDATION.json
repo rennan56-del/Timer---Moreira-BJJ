@@ -1,15 +1,15 @@
 {
-  "version": "1.4.0",
+  "version": "1.4.1",
   "native": {
     "command": "npm test",
-    "passed": 92,
+    "passed": 103,
     "failed": 0
   },
   "browser": {
     "command": "python3 tests/browser-minimal.py",
     "passed": 40,
     "failed": 0,
-    "cache": "const CACHE = 'moreira-bjj-9db8124e8e6925';",
+    "cache": "const CACHE = 'moreira-bjj-afa5b18d2b286d';",
     "scenarios": [
       {
         "test": "Nova abertura exige escolha de modo sem iniciar cronômetro ou tocar sons",
@@ -208,13 +208,14 @@
     }
   },
   "release": {
-    "version": "1.4.0",
-    "status": "validated; GitHub upload requested separately",
-    "native_passed": 92,
+    "version": "1.4.1",
+    "status": "local only; not published",
+    "native_passed": 103,
     "browser_regression_passed": 40,
-    "focused_editor_passed": 12,
-    "protocol_scenarios_passed": 12,
-    "physical_android": false
+    "audio_recovery_passed": 8,
+    "physical_iphone": false,
+    "physical_roku": false,
+    "music_concurrent": false
   },
   "focused_editor": {
     "passed": 12,
@@ -253,5 +254,21 @@
       "bjj: últimas alterações manuais ficam separadas do protocolo"
     ],
     "physical_android": false
+  },
+  "audio_recovery": {
+    "passed": 8,
+    "scenarios": [
+      "6 ciclos hidden/visible: suspended, interrupted e running congelado recuperam sem bipes extras e descontam tempo",
+      "3 ciclos pausados preservam integralmente fase, tempo, round, protocolo e modo",
+      "Bloqueio automático oferece botão direto; um único toque recupera sem reiniciar ou testar sirene",
+      "Interrupção em primeiro plano e retorno por focus também recuperam saída sem afetar pausa",
+      "BFcache simulado recupera posse e áudio sem duplicar sinais ou perder treino",
+      "Reativação no segundo 3 não repete bip; segundos 2/1/zero seguem com exatamente três sinais",
+      "Silencioso impede retomada de áudio e avisos de recuperação desnecessários",
+      "Sem exceções JavaScript, elementos de mídia ou som de diagnóstico durante recuperação"
+    ],
+    "physical_iphone": false,
+    "physical_roku": false,
+    "music_concurrent": false
   }
 }

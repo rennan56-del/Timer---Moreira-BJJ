@@ -51,11 +51,42 @@ let updateHoldTimer: ReturnType<typeof setTimeout>;
 let isOfflineReady = false, starting = false, lifecycleRecovering = false, saveWarning = false;
 let lastSave = -Infinity, clearedRun = '';
 let ownershipLost = false, pageSuspended = false, pageReturnPending = false;
+let audioRecoveryAction = false, audioRecoveryOffer = false;
+let audioWasAway = false, audioBlurAt = 0;
 const appUpdates = new AppUpdates({isTrainingActive:() => active() || starting,notify});
 const awake = new ScreenAwake(message => { $('#wake-status').textContent = message; });
 function notify(message: string): void {
   const toast = $('#toast'); toast.textContent = message; toast.hidden = false;
-  clearTimeout(toastTimeout); toastTimeout = setTimeout(() => { toast.hidden = true; }, Math.min(14000, 4000 + message.length * 35));
+  clearTimeout(toastTimeout);
+  if ((audioRecoveryAction || audioRecoveryOffer) && settings.audio.enabled && settings.audio.volume > 0) {
+    const action = document.createElement('button'); action.type = 'button'; action.id = 'audio-recovery-action';
+    action.className = 'small-button'; action.textContent = 'Reativar áudio';
+    action.addEventListener('click', () => { action.disabled = true; audioRecoveryOffer = false; void reactivateAudio(); });
+    toast.append(document.createTextNode(' '),action);
+    toast.classList.add('audio-recovery-notice');
+    if (!audioRecoveryAction) toastTimeout = setTimeout(() => { audioRecoveryOffer = false; toast.hidden = true; },12000);
+  } else { toast.classList.remove('audio-recovery-notice'); toastTimeout = setTimeout(() => { toast.hidden = true; }, Math.min(14000, 4000 + message.length * 35)); }
+}
+function updateAudioRecovery(): void {
+  if (audioRecoveryOffer && (!active() || !settings.audio.enabled || settings.audio.volume === 0)) { audioRecoveryOffer = false; if ($('#audio-recovery-action')) $('#toast').hidden = true; }
+  const needed = settings.audio.enabled && settings.audio.volume > 0 && active() && audio.needsGesture;
+  if (needed && !audioRecoveryAction) {
+    audioRecoveryAction = true; notify('O treino continua. Toque para reativar o som.');
+  } else if (!needed && audioRecoveryAction) {
+    audioRecoveryAction = false;
+    if ($('#audio-recovery-action')) { $('#toast').hidden = true; $('#toast').replaceChildren(); }
+  }
+}
+function recoverAudioAfterReturn(): void {
+  if (document.hidden || lifecycleRecovering || !selectedMode || !active() || !workoutLock.owned || !settings.audio.enabled || !settings.audio.volume) return;
+  const returned = audioWasAway; audioWasAway = false;
+  void audio.recover({automatic:true}).then(ready => {
+    updateAudioRecovery();
+    // A moving clock cannot prove audible AirPlay output. Keep a one-tap
+    // fallback briefly available after unlock even when processing recovered.
+    if (ready && returned && !document.hidden && active() && settings.audio.enabled && settings.audio.volume > 0) { audioRecoveryOffer = true; notify('Som retomado. Se não ouvir os sinais:'); }
+    render();
+  });
 }
 async function confirmAction(message: string): Promise<boolean> {
   const dialog = $<HTMLDialogElement>('#confirm-dialog');
@@ -168,6 +199,7 @@ async function testAudioSequence(): Promise<void> {
 async function reactivateAudio(): Promise<void> {
   const ready = await audio.recover();
   notify(ready ? settings.audio.enabled ? 'Áudio reativado. Tempo e rounds preservados.' : 'Contexto de áudio reativado. O modo silencioso continua ligado.' : audio.lastError || 'O navegador não reativou o áudio. Confira a saída do Android/Roku.');
+  $('#toast').classList.add('audio-recovery-notice');
   // Never reset/seed the tracker here: a 3–2–1 signal already consumed stays consumed.
   render();
 }
@@ -262,6 +294,7 @@ function render(force = true): void {
     $('#resenha-card').classList.remove('new-frame'); void $('#resenha-card').offsetWidth; $('#resenha-card').classList.add('new-frame');
   }
   if (lastStatus !== s.status) { lastStatus = s.status; void awake.set(running); }
+  updateAudioRecovery();
   $('#audio-status').textContent = !settings.audio.enabled ? 'Som desativado' : audio.ready ? 'Áudio habilitado' : 'Toque em Reativar áudio';
   $('#recover-lock').hidden = !workoutLock.canRecoverFallback;
   document.title = inSession ? `${formatTime(s.remaining)} · ${phaseName} | Moreira BJJ` : 'MOREIRA BJJ TIMER';
@@ -363,10 +396,10 @@ function reconcile(): void {
   if (active() && !workoutLock.owned) { loseOwnership(); render(); return; }
   const events = engine.tick(); processSignals(events,true); signals.seed(engine.snapshot()); render(); persistWorkout(true);
   if (engine.snapshot().status === 'running') void awake.set(true);
-  if (settings.audio.enabled && !audio.ready && active()) notify('O treino continua. Toque em Reativar áudio se o sistema suspendeu o som.');
+  if (audioWasAway || audio.needsRecovery || !audio.ready) recoverAudioAfterReturn();
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { persistWorkout(true); clock.checkpoint(); stopAudioTest(); }
+  if (document.hidden) { audioWasAway = true; persistWorkout(true); clock.checkpoint(); stopAudioTest(); audio.markInterrupted(); }
   else reconcile();
 });
 async function restorePageState(): Promise<void> {
@@ -379,11 +412,28 @@ async function restorePageState(): Promise<void> {
   } finally { pageReturnPending = false; }
 }
 window.addEventListener('pagehide', () => {
-  persistWorkout(true); clock.checkpoint(); stopAudioTest();
+  audioWasAway = true; persistWorkout(true); clock.checkpoint(); stopAudioTest();
   // Fence immediately: visibility can return before pageshow during bfcache.
-  lifecycleRecovering = true; pageSuspended = true; workoutLock.release();
+  lifecycleRecovering = true; pageSuspended = true; audio.markInterrupted(); workoutLock.release();
 });
 window.addEventListener('pageshow', event => { if (event.persisted || pageSuspended) void restorePageState(); });
+window.addEventListener('blur', () => { audioBlurAt = Date.now(); });
+window.addEventListener('focus', () => {
+  // Some iOS returns deliver focus without a visibility transition. A normal
+  // focus within the app must not restart healthy output or reseed the signals.
+  if (document.hidden || !active()) return;
+  if (audioWasAway || (audioBlurAt > 0 && Date.now()-audioBlurAt > 1000)) {
+    audioBlurAt = 0; audioWasAway = true;
+    if (!audio.recovering && !audio.needsRecovery) audio.markInterrupted();
+    reconcile();
+  }
+});
+audio.onChange = () => {
+  if (document.hidden) return;
+  updateAudioRecovery(); render();
+  if (audio.needsRecovery && !audio.needsGesture && !audio.recovering && !lifecycleRecovering) recoverAudioAfterReturn();
+};
+
 window.addEventListener('beforeunload', event => { if (active()) { persistWorkout(true); event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('error', () => { if (active()) persistWorkout(true); notify('Ocorreu uma falha na interface. Confira o tempo e use Reativar áudio se necessário.'); });
 window.addEventListener('unhandledrejection', () => { if (active()) persistWorkout(true); notify('Uma operação não foi concluída. O tempo do treino não foi reiniciado.'); });

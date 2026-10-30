@@ -1,4 +1,4 @@
-# Moreira BJJ Timer — 1.4.0
+# Moreira BJJ Timer — 1.4.1
 
 Cronômetro de academia com números gigantes, preparação amarela, luta verde-limão e descanso vermelho. O modo Moreira é direto e profissional; o modo BJJ mostra as fotos nos primeiros e últimos três segundos de cada fase e na finalização, sem frases humorísticas. O relógio nunca é coberto pelas imagens.
 
@@ -131,3 +131,13 @@ Os protocolos não sobrescrevem as configurações manuais. Mesmo ao editar temp
 A implementação foi salva localmente e o envio ao GitHub foi solicitado pelo proprietário; consulte o resultado informado na entrega. Não houve solicitação de atualização da hospedagem para esta revisão.
 
 Teste específico: `python3 tests/browser-protocols.py`. O script usa relógio controlado para percorrer todas as etapas nos dois modos, sem aguardar os minutos reais; a lógica sonora é testada separadamente com limiares do relógio. Android/Roku físicos continuam exigindo validação na academia.
+
+## Recuperação de áudio no iPhone — 1.4.1 local
+
+Ao voltar de bloqueio/suspensão, a página reconcilia o relógio do treino e tenta recuperar Web Audio automaticamente. Estados `suspended` e `interrupted` deixam de ser tratados como saída disponível. Mesmo em `running`, a recuperação verifica se `currentTime` avança, tenta suspend/resume e, se necessário, recria o contexto. Operações têm prazo e resultados antigos são invalidados; bipes congelados são descartados, não reproduzidos depois.
+
+O layout permanente permanece igual. O aviso existente oferece **Reativar áudio** com um toque se houver bloqueio do navegador. Depois de uma retomada aparentemente bem-sucedida, a mesma ação fica disponível por 12 segundos: o relógio avançar não prova que o som chegou à Roku. O botão anterior no menu também continua disponível. Nenhuma recuperação altera rounds, protocolo, pausa, volume ou contagem, nem toca sirene de diagnóstico.
+
+A implementação mantém Web Audio sem elementos de mídia, foco exclusivo ou keepalive. Reutiliza primeiro o contexto e preserva um `sinkId` exposto ao recriar a saída, mas o roteamento AirPlay/Roku e a continuidade da música são controlados pelo iOS e precisam de teste real. Não é possível detectar pelo JavaScript um alto-falante silencioso quando o contexto parece saudável.
+
+Testes específicos: `python3 tests/browser-audio-recovery.py`. O teste injeta falhas no Chromium e simula ciclos de visibilidade/foco/BFcache; não equivale a bloquear/desbloquear um iPhone. Esta revisão não foi publicada no GitHub nem na hospedagem.

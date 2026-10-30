@@ -19,7 +19,7 @@ class MockAudioContext {
 }
 function setup(){
   let context; globalThis.window={AudioContext:class extends MockAudioContext{constructor(){super();context=this;}}};
-  const audio=new AudioSystem(); return {audio,context:()=>context,settings:{...defaults().audio,volume:65,musicCompatibility:false}};
+  const audio=new AudioSystem(async()=>true); return {audio,context:()=>context,settings:{...defaults().audio,volume:65,musicCompatibility:false}};
 }
 test('áudio aguarda gesto, respeita opções e dá prioridade aos sinais do treino (mock)',async()=>{
   const {audio,context,settings:s}=setup(); s.funny=true;
@@ -69,9 +69,9 @@ test('reativar contexto suspenso reutiliza contexto; contexto fechado pode ser r
   original.state='closed'; assert.equal(await audio.recover(),true); assert.notEqual(context(),original);
 });
 test('falha de resume e ausência de Web Audio são tratadas',async()=>{
-  globalThis.window={}; const unsupported=new AudioSystem(); assert.equal(await unsupported.enable(),false); assert.match(unsupported.lastError,/disponível/);
+  globalThis.window={}; const unsupported=new AudioSystem(async()=>true); assert.equal(await unsupported.enable(),false); assert.match(unsupported.lastError,/disponível/);
   globalThis.window={AudioContext:class extends MockAudioContext{async resume(){throw new Error('NotAllowedError')}}};
-  const denied=new AudioSystem(); assert.equal(await denied.enable(),false); assert.ok(denied.lastError);
+  const denied=new AudioSystem(async()=>true); assert.equal(await denied.enable(),false); assert.ok(denied.lastError);
 });
 test('saída com falha não lança exceção no cronômetro',async()=>{
   const {audio,context,settings}=setup(); await audio.enable();
@@ -134,7 +134,7 @@ test('reativação recupera falha transitória ao criar a saída compartilhada',
     constructor(){super();context=this;}
     createGain(){if(!failed){failed=true;throw new Error('temporary route failure')}return super.createGain();}
   }};
-  const audio=new AudioSystem();
+  const audio=new AudioSystem(async()=>true);
   assert.equal(await audio.enable(),false);
   assert.equal(await audio.recover(),true);
   assert.equal(audio.play('short',{...defaults().audio,volume:65}),true);

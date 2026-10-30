@@ -3,6 +3,13 @@ export type Cue = 'start' | 'end' | 'count' | 'ten' | 'return' | 'funny' | 'shor
 type AudioOptions = Settings['audio'] & { musicCompatibility?: boolean };
 export const SIGNAL_PEAK_BUDGET = .9;
 interface Voice { priority: number; peak: number }
+/** A moving clock verifies processing, not acoustic output or the AirPlay route. */
+export async function audioClockAdvances(context: AudioContext): Promise<boolean> {
+  if (String(context.state) !== 'running') return false;
+  const before = context.currentTime;
+  await new Promise<void>(resolve => setTimeout(resolve,100));
+  return String(context.state) === 'running' && context.currentTime - before > .001;
+}
 /** Oscillators only: no media elements, Media Session, focus requests or keepalive. */
 export class AudioSystem {
   private context?: AudioContext;
@@ -11,55 +18,119 @@ export class AudioSystem {
   private buzzerWave?: PeriodicWave;
   private importantUntil = 0;
   private error = '';
-  private enabling?: Promise<boolean>;
-  get ready(): boolean { return this.context?.state === 'running'; }
-  get state(): string { return this.context?.state || 'not-initialized'; }
+  private epoch = 0;
+  private dirty = false;
+  private tapRequired = false;
+  private repairing = false;
+  private pending?: { token: number; promise: Promise<boolean> };
+  onChange?: () => void;
+  constructor(private probe: (context: AudioContext) => Promise<boolean> = audioClockAdvances) {}
+  get ready(): boolean { return this.state === 'running' && !this.dirty && !this.repairing; }
+  get state(): string { return this.context ? String(this.context.state) : 'not-initialized'; }
   get lastError(): string { return this.error; }
-  async enable(): Promise<boolean> {
-    if (this.enabling) return this.enabling;
-    this.enabling = this.activate();
-    try { return await this.enabling; }
-    finally { this.enabling = undefined; }
+  get needsRecovery(): boolean { return this.dirty; }
+  get needsGesture(): boolean { return this.tapRequired; }
+  get recovering(): boolean { return this.repairing || !!this.pending; }
+  enable(): Promise<boolean> {
+    if (this.dirty || this.tapRequired) return this.recover();
+    return this.pending?.promise || this.launch(false,false,false);
   }
-  /** Call only from a user interaction. It never changes the timer or round. */
-  recover(): Promise<boolean> {
-    // Discard tones frozen in a suspended context instead of finishing old beeps
-    // when the user restores the output route. This does not touch timer state.
-    this.stop();
-    return this.enable();
+  /** Fence late work and discard frozen tones when the page/output is interrupted. */
+  markInterrupted(): void {
+    this.epoch++; this.pending = undefined; this.repairing = false;
+    this.dirty = true; this.tapRequired = false; this.stop(); this.onChange?.();
   }
-  private async activate(): Promise<boolean> {
+  /** Automatic return repairs once; a real user gesture may preempt blocked work. */
+  recover(options: { automatic?: boolean } = {}): Promise<boolean> {
+    const automatic = options.automatic === true;
+    if (automatic && this.pending) return this.pending.promise;
+    // A single tap rebuilds a failed or apparently-running output synchronously,
+    // so context creation/resume still happen inside the browser's activation.
+    const rebuild = !automatic && (this.tapRequired || this.state === 'running');
+    return this.launch(true,automatic,rebuild);
+  }
+  private launch(repair: boolean, automatic: boolean, rebuild: boolean): Promise<boolean> {
+    const token = ++this.epoch;
+    this.repairing = repair; this.tapRequired = false;
+    if (repair) { this.dirty = true; this.stop(); }
+    const promise = this.activate(token,repair,automatic,rebuild).finally(() => {
+      if (token !== this.epoch) return;
+      this.pending = undefined; this.repairing = false; this.onChange?.();
+    });
+    this.pending = {token,promise};
+    return promise;
+  }
+  private async bounded(action: () => Promise<unknown>): Promise<boolean> {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const Constructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Constructor) { this.error = 'Web Audio não está disponível neste navegador.'; return false; }
-      if (!this.context || this.context.state === 'closed') {
-        this.stop();
-        this.master?.disconnect();
-        this.master = undefined;
-        this.buzzerWave = undefined;
-        this.context = new Constructor({ latencyHint: 'interactive' });
+      return await Promise.race([
+        action().then(() => true, () => false),
+        new Promise<boolean>(resolve => { timeout = setTimeout(() => resolve(false),1500); })
+      ]);
+    } catch { return false; }
+    finally { clearTimeout(timeout); }
+  }
+  private createContext(): AudioContext {
+    const Constructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Constructor) throw new Error('Web Audio indisponível');
+    const previous = this.context;
+    // Preserve an explicit sink only where the browser exposes one. iOS/AirPlay
+    // routing is OS-controlled; no route picker, focus API or setSinkId is used.
+    const sinkId = (previous as AudioContext & {sinkId?: string} | undefined)?.sinkId;
+    this.stop(); this.master?.disconnect(); this.master = undefined; this.buzzerWave = undefined;
+    this.context = undefined;
+    if (previous) {
+      previous.onstatechange = null;
+      try { void previous.close().catch(() => {}); } catch { /* Already closed. */ }
+    }
+    const context = new Constructor({latencyHint:'interactive', ...(typeof sinkId === 'string' ? {sinkId} : {})});
+    this.context = context;
+    context.onstatechange = () => {
+      if (context !== this.context) return;
+      if (String(context.state) !== 'running') { this.dirty = true; this.stop(); }
+      this.onChange?.();
+    };
+    return context;
+  }
+  private graph(context: AudioContext): void {
+    if (this.master) return;
+    const master = context.createGain();
+    master.gain.setValueAtTime(1,context.currentTime); master.connect(context.destination); this.master = master;
+  }
+  private async resume(context: AudioContext, cycle: boolean, verify: boolean): Promise<boolean> {
+    const resumed = await this.bounded(() => {
+      if (cycle && typeof context.suspend === 'function') {
+        // Queue both operations inside the gesture; no await before resume.
+        const suspended = context.suspend(), running = context.resume();
+        return Promise.all([suspended,running]);
       }
-      if (!this.master) {
-        this.master = this.context.createGain();
-        this.master.gain.setValueAtTime(1, this.context.currentTime);
-        this.master.connect(this.context.destination);
+      return context.resume();
+    });
+    if (!resumed || String(context.state) !== 'running') return false;
+    if (!verify) return true;
+    let healthy = false;
+    return await this.bounded(async () => { healthy = await this.probe(context); }) && healthy;
+  }
+  private async activate(token: number, repair: boolean, automatic: boolean, rebuild: boolean): Promise<boolean> {
+    try {
+      let context = rebuild || !this.context || this.state === 'closed' ? this.createContext() : this.context;
+      this.graph(context);
+      let good = !repair && String(context.state) === 'running' ? true : await this.resume(context,repair && automatic && String(context.state) === 'running',repair);
+      if (token !== this.epoch) return false;
+      if (!good && repair && !rebuild) {
+        context = this.createContext(); this.graph(context);
+        good = await this.resume(context,false,true);
+        if (token !== this.epoch) return false;
       }
-      if (!this.ready) {
-        // A browser may leave resume pending when no usable output is available.
-        // The UI must recover rather than hang indefinitely; late success is
-        // reflected by the ready/state getters without replaying previous cues.
-        await Promise.race([
-          this.context.resume(),
-          new Promise<void>(resolve => { timeout = setTimeout(resolve, 1500); })
-        ]);
-      }
-      this.error = this.ready ? '' : 'Áudio suspenso pelo navegador. Toque em Reativar áudio e confira a saída do dispositivo.';
-      return this.ready;
-    } catch {
-      this.error = 'Não foi possível ativar o áudio. Confira permissões, modo silencioso e a saída de som.';
+      this.dirty = !good; this.tapRequired = !good;
+      this.error = good ? '' : 'Áudio bloqueado ou interrompido. Toque em Reativar áudio; o treino continua.';
+      return good;
+    } catch (error) {
+      if (token !== this.epoch) return false;
+      this.dirty = true; this.tapRequired = true;
+      this.error = error instanceof Error && error.message === 'Web Audio indisponível' ? 'Web Audio não está disponível neste navegador.' : 'Não foi possível ativar o áudio. Confira permissões, modo silencioso e a saída de som.';
       return false;
-    } finally { if (timeout !== undefined) clearTimeout(timeout); }
+    }
   }
   stop(): void {
     for (const node of this.nodes.keys()) { try { node.stop(); } catch { /* Already stopped. */ } }
@@ -141,7 +212,9 @@ export class AudioSystem {
       } else tone(gym ? 2400 : 2000, now, gym ? .23 : .18, gym ? 2400 : 2000, 'square');
       return true;
     } catch {
+      this.dirty = true; this.tapRequired = false;
       this.error = 'A saída de áudio falhou. Toque em Reativar áudio; o treino continua.';
+      this.onChange?.();
       return false;
     }
   }

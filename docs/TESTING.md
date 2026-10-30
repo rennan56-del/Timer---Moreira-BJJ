@@ -105,3 +105,13 @@ Cada protocolo percorreu todas as etapas no Modo Moreira e no Modo BJJ. Foram ve
 Os testes nativos verificam os três bipes curtos e um longo em todas as etapas, sem repetição na pausa/retomada; compensação de atraso numa luta variável; validação de capturas e compatibilidade com sessões manuais antigas. Nos drills por aluno, há exatamente sete intervalos de 30 s, com uma única troca de aluno entre as rodadas quatro e cinco.
 
 `artifacts/protocol-results.json` contém o relatório; `artifacts/protocol-{moreira,bjj}-{mobile,tv}.png` contém capturas. O navegador usa relógio controlado para as sessões longas. Não foram testados Android/Roku físicos, música simultânea ou acústica real. Não foi usada VPS nem serviço pago.
+
+## Recuperação de áudio 1.4.1 — local, sem publicação
+
+Comandos executados: `npm test` (103 aprovados), `python3 tests/browser-minimal.py` (40 cenários) e `python3 tests/browser-audio-recovery.py` (8 cenários). A suíte adicional usa contextos Chromium reais com falhas injetadas para estados suspended/interrupted, relógio congelado apesar de running e recusa de resume simulando exigência de gesto no iOS.
+
+São seis ciclos de visibilidade em execução, três pausados, bloqueio com reativação por toque, retomada por foco e BFcache. Os testes conferem tempo descontado, pausa, round, protocolo, modo, ausência de tons gerados pela recuperação e sinais 2/1/zero após recuperar num segundo 3 já consumido. A opção Silencioso impede recuperação automática e mensagens desnecessárias. A ação direta também fica disponível brevemente após retorno aparentemente saudável, pois o JavaScript não mede a audibilidade na saída AirPlay. O aviso de recuperação não intercepta o botão de pausa/retomada.
+
+Os 11 novos testes nativos verificam o avanço real do relógio do contexto simulado, dez ciclos repetidos, ciclo suspend/resume, recriação com sink exposto, deduplicação de solicitações simultâneas, invalidação de resultados antigos, gesto que preempta uma tentativa pendente e timeout de resume. Os testes anteriores de síntese/envelope usam uma sonda de relógio injetada para isolar suas verificações; a suíte nova exercita a sonda padrão.
+
+Relatório: `artifacts/audio-recovery-results.json`. O roteiro físico está em [ANDROID-ROKU.md](ANDROID-ROKU.md). Não foram executados bloqueio/desbloqueio em iPhone real, Roku física, música de outro aplicativo ou testes acústicos. Contexto running e currentTime avançando não provam saída audível nem manutenção da rota de áudio pelo iOS.
