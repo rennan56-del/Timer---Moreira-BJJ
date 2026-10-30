@@ -360,3 +360,20 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
 
 /* Situational audio action leaves the workout transport and digits accessible. */
 .toast.audio-recovery-notice { top:max(8px,env(safe-area-inset-top)); bottom:auto; }
+/* Larger, separate touch targets for the two primary header actions. */
+.header-actions #open-settings,
+.header-actions .quick-menu>summary { width:52px; min-width:52px; height:52px; min-height:52px; padding:8px; flex-shrink:0; touch-action:manipulation; }
+.header-actions #open-settings svg { width:30px; height:30px; }
+.header-actions .quick-menu>summary { font-size:30px; letter-spacing:1px; }
+.header-actions .quick-menu-body { top:calc(100% + 6px); max-height:calc(100dvh - 120px - env(safe-area-inset-top)); overflow-y:auto; overscroll-behavior:contain; }
+@media(max-width:680px) {
+ .topbar { height:calc(86px + env(safe-area-inset-top)); min-height:calc(86px + env(safe-area-inset-top)); padding-top:calc(4px + env(safe-area-inset-top)); }
+ .header-actions { gap:4px; }
+ .header-actions #open-settings,.header-actions>.quick-menu { position:relative; top:8px; }
+}
+@media(hover:none) and (pointer:coarse) {
+ .topbar { padding-left:max(8px,env(safe-area-inset-left)); padding-right:max(8px,env(safe-area-inset-right)); }
+}
+@media(orientation:landscape) and (max-height:650px) {
+ .header-actions #open-settings,.header-actions>.quick-menu { position:relative; top:3px; }
+}
