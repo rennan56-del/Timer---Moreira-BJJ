@@ -1,6 +1,6 @@
 import { PROTOCOLS } from '../core/protocols.js';
 import { icon } from './icons.js';
-const brand = (large = false) => `<div class="brand ${large ? 'brand-large' : 'brand-header'}"><img class="academy-logo" data-academy-logo alt="Logo oficial Moreira BJJ Academy" hidden/><span class="brand-name">MOREIRA <b>BJJ</b><small>ACADEMY · TIMER</small></span></div>`;
+const brand = (large = false) => `<${large ? 'div' : 'button type="button" id="home-brand" aria-label="Voltar à seleção de modos" title="Voltar à seleção de modos"'} class="brand ${large ? 'brand-large' : 'brand-header'}"><img class="academy-logo" data-academy-logo alt="Logo oficial Moreira BJJ Academy" hidden/><span class="brand-name">MOREIRA <b>BJJ</b><small>ACADEMY · TIMER</small></span></${large ? 'div' : 'button'}>`;
 export function layout(): string {
   return `
   <section id="mode-screen" class="mode-screen" aria-labelledby="mode-title">

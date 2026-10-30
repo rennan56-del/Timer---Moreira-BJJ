@@ -115,3 +115,13 @@ São seis ciclos de visibilidade em execução, três pausados, bloqueio com rea
 Os 11 novos testes nativos verificam o avanço real do relógio do contexto simulado, dez ciclos repetidos, ciclo suspend/resume, recriação com sink exposto, deduplicação de solicitações simultâneas, invalidação de resultados antigos, gesto que preempta uma tentativa pendente e timeout de resume. Os testes anteriores de síntese/envelope usam uma sonda de relógio injetada para isolar suas verificações; a suíte nova exercita a sonda padrão.
 
 Relatório: `artifacts/audio-recovery-results.json`. O roteiro físico está em [ANDROID-ROKU.md](ANDROID-ROKU.md). Não foram executados bloqueio/desbloqueio em iPhone real, Roku física, música de outro aplicativo ou testes acústicos. Contexto running e currentTime avançando não provam saída audível nem manutenção da rota de áudio pelo iOS.
+
+## Início pela marca e independência 1.5.0 — somente local
+
+`npm test`: 103 testes aprovados. `python3 tests/browser-minimal.py`: 40 cenários aprovados. `python3 tests/browser-home-isolation.py`: 6 cenários aprovados.
+
+A suíte nova testa a marca inteira por imagem, texto e teclado, nos dois modos e nos estados pronto, preparação, luta, pausa, descanso e concluído. Verifica interrupção dos sons, remoção da retomada e conservação das configurações. Um callback de Web Lock propositalmente atrasado confirma que sair pela marca impede início tardio do treino. O layout de 320 px foi conferido sem rolagem horizontal.
+
+Três perfis independentes usam o mesmo servidor/origem simultaneamente, com lutas/descansos/rounds distintos e protocolo variável. Um deles usa o fallback sem Web Locks. Avanços, pausa, saída, alterações de configurações e recuperação após reload de um perfil não alteram os demais. Outra aba no mesmo perfil continua bloqueada e sair pela marca nessa aba não apaga a sessão que pertence à aba ativa.
+
+O teste confirma que as requisições de aplicação são leituras de arquivos locais/estáticos, sem transporte de estado de treino para servidor. Não há alteração funcional no mecanismo de independência, pois ele já usa armazenamento e motores locais; foi documentado e validado. Relatório: `artifacts/home-isolation-results.json`. Não foram usados celulares físicos ou executados testes de carga do serviço de hospedagem.

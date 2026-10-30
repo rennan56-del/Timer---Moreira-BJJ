@@ -1,4 +1,4 @@
-# Moreira BJJ Timer — 1.4.1
+# Moreira BJJ Timer — 1.5.0
 
 Cronômetro de academia com números gigantes, preparação amarela, luta verde-limão e descanso vermelho. O modo Moreira é direto e profissional; o modo BJJ mostra as fotos nos primeiros e últimos três segundos de cada fase e na finalização, sem frases humorísticas. O relógio nunca é coberto pelas imagens.
 
@@ -141,3 +141,11 @@ O layout permanente permanece igual. O aviso existente oferece **Reativar áudio
 A implementação mantém Web Audio sem elementos de mídia, foco exclusivo ou keepalive. Reutiliza primeiro o contexto e preserva um `sinkId` exposto ao recriar a saída, mas o roteamento AirPlay/Roku e a continuidade da música são controlados pelo iOS e precisam de teste real. Não é possível detectar pelo JavaScript um alto-falante silencioso quando o contexto parece saudável.
 
 Testes específicos: `python3 tests/browser-audio-recovery.py`. O teste injeta falhas no Chromium e simula ciclos de visibilidade/foco/BFcache; não equivale a bloquear/desbloquear um iPhone. Esta revisão não foi publicada no GitHub nem na hospedagem.
+
+## Retornar ao início e uso independente — 1.5.0 local
+
+Toda a marca no cabeçalho (logo e nome MOREIRA BJJ) é um botão nativo com suporte a toque, Enter e Espaço. Ele encerra imediatamente o treino desta página, cancela os sinais e inícios pendentes, remove a retomada da sessão que possui e mostra a escolha entre os modos. Tempos manuais, protocolo selecionado, fotos e volume permanecem guardados; selecionar um modo novamente deixa o treino pronto, sem partida automática.
+
+Cada celular executa seu próprio motor e áudio. Configurações e retomada usam localStorage; fotos adicionadas usam IndexedDB. Não existe servidor de sincronização de treinos, sala compartilhada ou lock global entre usuários. Web Locks e o fallback de armazenamento coordenam somente abas da mesma origem no mesmo perfil de navegador, evitando duplicação de sons nesse perfil. Esses bloqueios não atingem outro celular. Usar o mesmo link em aparelhos diferentes permite treinos e configurações independentes; limpar dados locais continua podendo apagar os dados daquele aparelho.
+
+Teste específico: `python3 tests/browser-home-isolation.py`. Três contextos Chromium isolados no mesmo endereço simulam usuários/aparelhos independentes, incluindo o fallback sem Web Locks. Isso não representa teste físico nem teste de carga da hospedagem. Esta revisão foi implementada e salva localmente; publicação é uma etapa separada.

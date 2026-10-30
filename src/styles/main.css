@@ -377,3 +377,6 @@ input[type="range"] { accent-color:var(--lime); display:block; width:100%; margi
 @media(orientation:landscape) and (max-height:650px) {
  .header-actions #open-settings,.header-actions>.quick-menu { position:relative; top:3px; }
 }
+
+/* Keep the existing brand geometry while making its full area an accessible home button. */
+#home-brand { appearance:none; background:none; border:0; padding:0; color:inherit; text-align:left; flex-shrink:0; }

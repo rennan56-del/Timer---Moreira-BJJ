@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "native": {
     "command": "npm test",
     "passed": 103,
@@ -9,7 +9,7 @@
     "command": "python3 tests/browser-minimal.py",
     "passed": 40,
     "failed": 0,
-    "cache": "const CACHE = 'moreira-bjj-afa5b18d2b286d';",
+    "cache": "const CACHE = 'moreira-bjj-b8260dd152f9e4';",
     "scenarios": [
       {
         "test": "Nova abertura exige escolha de modo sem iniciar cronômetro ou tocar sons",
@@ -208,14 +208,13 @@
     }
   },
   "release": {
-    "version": "1.4.1",
+    "version": "1.5.0",
     "status": "local only; not published",
     "native_passed": 103,
     "browser_regression_passed": 40,
-    "audio_recovery_passed": 8,
-    "physical_iphone": false,
-    "physical_roku": false,
-    "music_concurrent": false
+    "home_isolation_passed": 6,
+    "simulated_device_profiles": 3,
+    "physical_devices": false
   },
   "focused_editor": {
     "passed": 12,
@@ -270,5 +269,18 @@
     "physical_iphone": false,
     "physical_roku": false,
     "music_concurrent": false
+  },
+  "home_isolation": {
+    "passed": 6,
+    "scenarios": [
+      "moreira: logo/nome/teclado voltam ao início em pronto, preparação, luta, pausa, descanso e final; sons e retomada encerrados",
+      "bjj: logo/nome/teclado voltam ao início em pronto, preparação, luta, pausa, descanso e final; sons e retomada encerrados",
+      "Início pendente cancelado pela marca não começa depois; novo treino pode iniciar normalmente",
+      "3 dispositivos simulados simultâneos: durações, rounds, pausa, saída, configurações, recuperação e protocolo independentes",
+      "Bloqueio de outra aba permanece local ao perfil, inclusive no fallback, sem afetar os outros dispositivos",
+      "Nenhuma requisição de estado compartilhado/servidor; armazenamento e operações locais ao dispositivo"
+    ],
+    "simultaneous_device_profiles": 3,
+    "physical_devices": false
   }
 }

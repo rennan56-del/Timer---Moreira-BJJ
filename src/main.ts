@@ -41,6 +41,7 @@ const signals = new SignalTracker();
 const workoutLock = new WorkoutLock();
 const playlist = new RestPlaylist();
 let selectedMode: 'moreira' | 'bjj' | null = null;
+let navigationEpoch = 0;
 let pendingSession: SavedSession | undefined;
 let projectPhotos: Photo[] = [];
 let photos: Photo[] = [], photoURLs = new Map<string,string>();
@@ -160,12 +161,26 @@ function chooseMode(mode: 'moreira' | 'bjj'): void {
 }
 $('#choose-moreira').addEventListener('click', () => chooseMode('moreira'));
 $('#choose-bjj').addEventListener('click', () => chooseMode('bjj'));
-$('#change-mode').addEventListener('click', () => {
-  if (active()) return;
-  selectedMode = null; audio.stop(); $('.app-shell').hidden = true; $('#mode-screen').hidden = false;
+function returnToModeSelection(): void {
+  navigationEpoch++;
+  // End only this page's workout; never clear another tab's saved session.
+  const owned = workoutLock.owned;
+  selectedMode = null; engine.end();
+  if (owned) removeSavedWorkout();
+  pendingSession = undefined; $('#restore-banner').hidden = true;
+  starting = false; pageSuspended = false; lifecycleRecovering = false; pageReturnPending = false;
+  audioWasAway = false; audioBlurAt = 0;
+  stopAudioTest(); audio.markInterrupted(); signals.reset(); playlist.reset(); currentPhoto = '';
+  workoutLock.release(); void awake.set(false);
+  $('#quick-menu').removeAttribute('open'); $('#help').hidden = true;
+  $('#help-toggle').setAttribute('aria-expanded','false');
+  clearTimeout(toastTimeout); $('#toast').hidden = true;
+  $('.app-shell').hidden = true; $('#mode-screen').hidden = false;
   if (tv) toggleTV();
-  applyAppearance(); $('#choose-moreira').focus({ preventScroll: true });
-});
+  applyAppearance(); render(); $('#choose-moreira').focus({preventScroll:true});
+}
+$('#home-brand').addEventListener('click',returnToModeSelection);
+$('#change-mode').addEventListener('click', () => { if (!active()) returnToModeSelection(); });
 async function reloadPhotos(): Promise<void> {
   let local: Photo[] = [];
   try { local = await listPhotos(); } catch (error) { notify((error as Error).message); }
@@ -300,7 +315,9 @@ function render(force = true): void {
   document.title = inSession ? `${formatTime(s.remaining)} · ${phaseName} | Moreira BJJ` : 'MOREIRA BJJ TIMER';
 }
 async function acquireWorkout(): Promise<boolean> {
+  const epoch = navigationEpoch;
   const success = await workoutLock.acquire();
+  if (epoch !== navigationEpoch) return false;
   if (!success) { notify(workoutLock.reason); render(); } else ownershipLost = false;
   return success;
 }
@@ -311,6 +328,7 @@ $('#primary').addEventListener('click', async () => {
   }
   stopAudioTest();
   if (settings.audio.enabled) void audio.enable().then(() => render());
+  const epoch = navigationEpoch;
   starting = true; render();
   try {
     if (!await acquireWorkout()) return;
@@ -318,14 +336,16 @@ $('#primary').addEventListener('click', async () => {
     else { if (engine.protocolId) engine.configureProtocol(engine.protocolId); else engine.configure({ ...settings.training, preparation:3 }); run = createId(); signals.reset(); playlist.reset(); clock.checkpoint(); engine.start(); }
     processSignals(); persistWorkout(true);
   } catch (error) {
+    if (epoch !== navigationEpoch) return;
     if (!active()) workoutLock.release();
     notify((error as Error).message || 'Não foi possível iniciar o treino. Tente novamente.');
-  } finally { starting = false; render(); }
+  } finally { if (epoch === navigationEpoch) { starting = false; render(); } }
 });
 $('#restore-session').addEventListener('click', async () => {
   if (starting || updateHold) return;
   stopAudioTest();
   if (settings.audio.enabled) void audio.enable().then(() => render());
+  const epoch = navigationEpoch;
   starting = true; render();
   try {
     if (!await acquireWorkout()) return;
@@ -339,8 +359,8 @@ $('#restore-session').addEventListener('click', async () => {
     signals.reset(); signals.seed(engine.snapshot()); playlist.reset(); pendingSession = undefined; $('#restore-banner').hidden = true;
     clock.checkpoint(); applyAppearance(); processSignals([],true); persistWorkout(true);
     notify('Treino recuperado. Nenhum sinal antigo foi reproduzido.');
-  } catch (error) { workoutLock.release(); notify((error as Error).message); }
-  finally { starting = false; render(); }
+  } catch (error) { if (epoch === navigationEpoch) { workoutLock.release(); notify((error as Error).message); } }
+  finally { if (epoch === navigationEpoch) { starting = false; render(); } }
 });
 $('#discard-session').addEventListener('click', async () => {
   if (!await confirmAction('Descartar o treino salvo? Isso não altera fotos ou configurações.')) return;
@@ -405,11 +425,13 @@ document.addEventListener('visibilitychange', () => {
 async function restorePageState(): Promise<void> {
   if (!pageSuspended || pageReturnPending) return;
   pageReturnPending = true;
+  const epoch = navigationEpoch;
   try {
     const success = !active() || await acquireWorkout();
+    if (epoch !== navigationEpoch) return;
     pageSuspended = false; lifecycleRecovering = false;
     if (success) reconcile(); else { loseOwnership(); render(); }
-  } finally { pageReturnPending = false; }
+  } finally { if (epoch === navigationEpoch) pageReturnPending = false; }
 }
 window.addEventListener('pagehide', () => {
   audioWasAway = true; persistWorkout(true); clock.checkpoint(); stopAudioTest();

@@ -13,7 +13,9 @@ export interface WorkoutLockOptions {
   heartbeatMs?: number;
   settleMs?: number;
 }
-/** Web Locks is atomic. The storage fallback is conservative and never steals an
+/** Locks and ownership storage are scoped to this origin/browser profile on one
+ * device. They never coordinate or reserve workouts on another device.
+ * Web Locks is atomic. The storage fallback is conservative and never steals an
  * old heartbeat: an Android tab can be alive even when its timers are suspended.
  * Consumers must check `owned` before updating the engine or playing a signal. */
 export class WorkoutLock {
